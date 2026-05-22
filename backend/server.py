@@ -817,9 +817,15 @@ async def get_recent_readings(limit: int = 25) -> list[dict[str, Any]]:
 @app.get("/active-alarms", tags=["Compatibility"])
 @app.get("/api/active-alarms", tags=["Compatibility"])
 async def get_active_alarms() -> list[dict[str, Any]]:
+    """
+    Return only unacknowledged alarms from the most recent reading of each motor.
+    If the latest reading for a motor has status='Normal' or 'Warning', 
+    it will NOT appear in this list regardless of prior alarm history.
+    """
+    latest = latest_readings()
     return [
         reading
-        for reading in reversed(readings_cache)
+        for reading in latest
         if reading["status"] == STATUS_ALARM and reading["id"] not in acknowledged_alarm_ids
     ]
 
