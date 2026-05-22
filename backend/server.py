@@ -84,9 +84,9 @@ _SHEETS_HEADERS = [
 ]
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════��[...]
 # Config Loader
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════��[...]
 
 def load_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
     """Load and return the raw machine_config.json as a dict."""
@@ -136,9 +136,9 @@ def get_machine_parameters(
         ) from exc
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 # Status Classification Helpers
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 
 def classify_value(
     value: float,
@@ -233,9 +233,9 @@ def health_percent_for_status(status: str) -> int:
     return 100
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 # Google Sheets Persistence Layer
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 
 def _row_from_doc(doc: dict[str, Any]) -> list:
     """Convert a reading document dict into an ordered list matching _SHEETS_HEADERS."""
@@ -245,11 +245,18 @@ def _row_from_doc(doc: dict[str, Any]) -> list:
 def init_google_sheets() -> None:
     """
     Initialise the Google Sheets connection at startup.
-    Reads environment variables and connects via service account file path.
+    Supports two authentication methods:
+    1. GOOGLE_SERVICE_ACCOUNT_JSON (Priority 1) - JSON string in env var
+    2. GOOGLE_SERVICE_ACCOUNT_FILE (Priority 2, fallback) - File path to service account
     """
     global _sheets_enabled, _sheets_worksheet
 
-    if os.environ.get("GOOGLE_SHEETS_ENABLED", "false").lower() != "true":
+    logger.info("Google Sheets init starting...")
+
+    google_sheets_enabled = os.environ.get("GOOGLE_SHEETS_ENABLED", "false").lower() == "true"
+    logger.info("GOOGLE_SHEETS_ENABLED=%s", google_sheets_enabled)
+
+    if not google_sheets_enabled:
         logger.info("Google Sheets disabled (GOOGLE_SHEETS_ENABLED != true)")
         return
 
@@ -261,45 +268,88 @@ def init_google_sheets() -> None:
         return
 
     sheet_id = os.environ.get("GOOGLE_SHEET_ID", "").strip()
-
-    service_account_file = os.environ.get(
-        "GOOGLE_SERVICE_ACCOUNT_FILE",
-        "ecm-project-497106-afa1bd2f0801.json"
-    ).strip()
+    logger.info("GOOGLE_SHEET_ID=%r", sheet_id)
 
     if not sheet_id:
         logger.warning("Google Sheets disabled — GOOGLE_SHEET_ID is not set")
         return
 
-    # Verify and resolve relative paths correctly relative to server.py location
-    file_path = Path(service_account_file)
-    if not file_path.is_absolute() and not file_path.exists():
-        resolved_path = Path(__file__).parent / file_path.name
-        if resolved_path.exists():
-            service_account_file = str(resolved_path)
-            logger.info("Resolved service account file to absolute path: %s", service_account_file)
+    # Priority 1: Check for GOOGLE_SERVICE_ACCOUNT_JSON env var
+    service_account_json = os.environ.get(
+        "GOOGLE_SERVICE_ACCOUNT_JSON",
+        ""
+    ).strip()
 
-    if not os.path.exists(service_account_file):
-        logger.warning(
-            "Google Sheets disabled — service account file not found: %s",
-            service_account_file,
-        )
-        return
+    creds = None
+    credential_source = None
 
-    # Safe diagnostic debug logs exactly before authentication attempt
-    logger.info("SHEET_ID=%r", sheet_id)
-    logger.info("SERVICE_ACCOUNT_FILE=%r", service_account_file)
+    if service_account_json:
+        try:
+            creds_dict = json.loads(service_account_json)
+            creds = GServiceCredentials.from_service_account_info(
+                creds_dict,
+                scopes=[
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive"
+                ]
+            )
+            credential_source = "GOOGLE_SERVICE_ACCOUNT_JSON env var"
+            logger.info("Credential source: %s", credential_source)
+        except json.JSONDecodeError as exc:
+            logger.error(
+                "GOOGLE_SERVICE_ACCOUNT_JSON is invalid JSON, falling back to file-based auth: %s",
+                exc
+            )
+        except Exception as exc:
+            logger.error(
+                "Failed to create credentials from GOOGLE_SERVICE_ACCOUNT_JSON, falling back to file-based auth: %s",
+                exc
+            )
 
+    # Priority 2: Fallback to GOOGLE_SERVICE_ACCOUNT_FILE
+    if creds is None:
+        service_account_file = os.environ.get(
+            "GOOGLE_SERVICE_ACCOUNT_FILE",
+            "ecm-project-497106-afa1bd2f0801.json"
+        ).strip()
+
+        # Verify and resolve relative paths correctly relative to server.py location
+        file_path = Path(service_account_file)
+        if not file_path.is_absolute() and not file_path.exists():
+            resolved_path = Path(__file__).parent / file_path.name
+            if resolved_path.exists():
+                service_account_file = str(resolved_path)
+                logger.info("Resolved service account file to absolute path: %s", service_account_file)
+
+        if not os.path.exists(service_account_file):
+            logger.warning(
+                "Google Sheets disabled — service account file not found: %s",
+                service_account_file,
+            )
+            return
+
+        logger.info("Credential source: GOOGLE_SERVICE_ACCOUNT_FILE (%s)", service_account_file)
+
+        try:
+            creds = GServiceCredentials.from_service_account_file(
+                service_account_file,
+                scopes=[
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive",
+                ]
+            )
+            credential_source = "GOOGLE_SERVICE_ACCOUNT_FILE"
+        except Exception as exc:
+            logger.error("Google Sheets disabled — failed to load credentials from file: %s", exc)
+            return
+
+    # Authenticate and initialize Google Sheets
     try:
-        creds = GServiceCredentials.from_service_account_file(
-            service_account_file,
-            scopes=[
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive",
-]
-        )
         client      = gspread.authorize(creds)
+        logger.info("Authentication successful")
+        
         spreadsheet = client.open_by_key(sheet_id)
+        logger.info("Spreadsheet opened successfully")
 
         # Get or create the Readings worksheet
         try:
@@ -319,7 +369,8 @@ def init_google_sheets() -> None:
 
         _sheets_worksheet = worksheet
         _sheets_enabled   = True
-        logger.info("Google Sheets connected (sheet_id=%s, worksheet='Readings')", sheet_id)
+        logger.info("Google Sheets ready (sheet_id=%s, worksheet='Readings', credential_source=%s)",
+                    sheet_id, credential_source)
 
     except json.JSONDecodeError as exc:
         logger.error("Google Sheets disabled — JSON validation error: %s", exc)
@@ -446,9 +497,9 @@ def latest_readings() -> list[dict[str, Any]]:
     return list(latest.values())
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 # Pydantic Schemas
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 
 class MotorReading(BaseModel):
     """A single sensor reading for one motor."""
@@ -516,9 +567,9 @@ class MachineConfigResponse(BaseModel):
     motors:     dict[str, dict[str, float]]
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 # Application Bootstrap
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 
 app = FastAPI(
     title="Electrical Condition Monitoring API",
@@ -544,9 +595,9 @@ async def startup_event() -> None:
     logger.info("Condition monitoring server ready.")
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 # Routes – Configuration Inspection
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 
 @app.get(
     "/config/{plant_id}/{machine_id}",
@@ -614,9 +665,9 @@ async def list_plants() -> dict[str, Any]:
     return result
 
 
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 # Routes – Readings & Status
-# ══════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════�[...]
 
 @app.post(
     "/readings",
