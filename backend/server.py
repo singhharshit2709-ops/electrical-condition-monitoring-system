@@ -491,10 +491,39 @@ async def process_and_store_readings(
 
 
 def latest_readings() -> list[dict[str, Any]]:
+    """
+    Return the most recent reading for each unique (plant, machine, motor) tuple.
+    This deduplicates historical readings and ensures calculations use current status only.
+    """
     latest: dict[tuple[str, str, str], dict[str, Any]] = {}
     for reading in readings_cache:
         latest[(reading["plant"], reading["machine"], reading["motor"])] = reading
     return list(latest.values())
+
+
+def get_latest_health_counts(plant_id: str | None = None, machine_id: str | None = None) -> dict[str, int]:
+    """
+    Calculate health status counts from ONLY the most recent reading per motor.
+    Optionally filter by plant_id and/or machine_id.
+    
+    Uses latest_readings() to ensure no historical readings are included.
+    
+    Returns: {"ok": int, "warning": int, "alarm": int}
+    """
+    latest = latest_readings()
+    
+    # Filter by plant/machine if specified
+    filtered = [
+        r for r in latest
+        if (plant_id is None or r["plant"] == plant_id)
+        and (machine_id is None or r["machine"] == machine_id)
+    ]
+    
+    return {
+        "ok": sum(1 for r in filtered if r["status"] == STATUS_NORMAL),
+        "warning": sum(1 for r in filtered if r["status"] == STATUS_WARNING),
+        "alarm": sum(1 for r in filtered if r["status"] == STATUS_ALARM),
+    }
 
 
 # ════════════════════════════════════════════════════════════════�[...]
@@ -840,31 +869,38 @@ async def acknowledge_alarm(alarm_id: str) -> dict[str, str]:
 @app.get("/machine-health/{plant_id}", tags=["Compatibility"])
 @app.get("/api/machine-health/{plant_id}", tags=["Compatibility"])
 async def get_machine_health(plant_id: str) -> list[dict[str, Any]]:
+    """
+    Return health status for each machine in a plant.
+    Calculations use ONLY the latest reading per motor via get_latest_health_counts().
+    """
     config: dict[str, Any] = app.state.config
     machines = config["plants"].get(plant_id, {}).get("machines", {})
-    latest = latest_readings()
     result = []
+    
     for machine_id, machine_data in machines.items():
-        statuses = [
-            reading["status"]
-            for reading in latest
-            if reading["plant"] == plant_id and reading["machine"] == machine_id
-        ]
-        counts = {
-            STATUS_NORMAL: statuses.count(STATUS_NORMAL),
-            STATUS_WARNING: statuses.count(STATUS_WARNING),
-            STATUS_ALARM: statuses.count(STATUS_ALARM),
-        }
+        # Use helper function to get counts from latest readings only
+        counts = get_latest_health_counts(plant_id=plant_id, machine_id=machine_id)
+        
+        # Determine worst status
+        statuses = []
+        if counts["alarm"] > 0:
+            statuses.append(STATUS_ALARM)
+        if counts["warning"] > 0:
+            statuses.append(STATUS_WARNING)
+        if counts["ok"] > 0:
+            statuses.append(STATUS_NORMAL)
+        
         worst_status = max(statuses, key=status_rank) if statuses else STATUS_NORMAL
-        total = len(statuses) or len(machine_data.get("motors", {}))
+        total = counts["ok"] + counts["warning"] + counts["alarm"]
+        
         result.append(
             {
                 "plant": plant_id,
                 "machine": machine_id,
                 "status": worst_status,
-                "ok": counts[STATUS_NORMAL],
-                "warning": counts[STATUS_WARNING],
-                "alarm": counts[STATUS_ALARM],
+                "ok": counts["ok"],
+                "warning": counts["warning"],
+                "alarm": counts["alarm"],
                 "total": total,
                 "health_percent": health_percent_for_status(worst_status),
             }
@@ -875,22 +911,37 @@ async def get_machine_health(plant_id: str) -> list[dict[str, Any]]:
 @app.get("/plant-health", tags=["Compatibility"])
 @app.get("/api/plant-health", tags=["Compatibility"])
 async def get_plant_health() -> list[dict[str, Any]]:
+    """
+    Return health status for all plants.
+    Calculations use ONLY the latest reading per motor via get_latest_health_counts().
+    """
     config: dict[str, Any] = app.state.config
-    latest = latest_readings()
     result = []
+    
     for plant_id, plant_data in config["plants"].items():
-        machine_health = await get_machine_health(plant_id)
-        statuses = [machine["status"] for machine in machine_health]
+        # Use helper function to get counts from latest readings only
+        counts = get_latest_health_counts(plant_id=plant_id)
+        
+        # Determine worst status
+        statuses = []
+        if counts["alarm"] > 0:
+            statuses.append(STATUS_ALARM)
+        if counts["warning"] > 0:
+            statuses.append(STATUS_WARNING)
+        if counts["ok"] > 0:
+            statuses.append(STATUS_NORMAL)
+        
         worst_status = max(statuses, key=status_rank) if statuses else STATUS_NORMAL
-        plant_readings = [reading for reading in latest if reading["plant"] == plant_id]
+        total = counts["ok"] + counts["warning"] + counts["alarm"]
+        
         result.append(
             {
                 "plant": plant_id,
                 "status": worst_status,
-                "ok": sum(1 for reading in plant_readings if reading["status"] == STATUS_NORMAL),
-                "warning": sum(1 for reading in plant_readings if reading["status"] == STATUS_WARNING),
-                "alarm": sum(1 for reading in plant_readings if reading["status"] == STATUS_ALARM),
-                "total": sum(len(machine.get("motors", {})) for machine in plant_data["machines"].values()),
+                "ok": counts["ok"],
+                "warning": counts["warning"],
+                "alarm": counts["alarm"],
+                "total": total,
                 "health_percent": health_percent_for_status(worst_status),
             }
         )
