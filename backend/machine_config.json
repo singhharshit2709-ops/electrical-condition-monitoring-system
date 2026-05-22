@@ -1,0 +1,2605 @@
+{
+  "schema_version": "2.0.0",
+  "description": "Electrical Condition Monitoring – threshold-based motor configuration",
+  "parameter_units": {
+    "current": "A",
+    "temperature": "°C",
+    "i2t": "A²s"
+  },
+  "plants": {
+    "A": {
+      "name": "Plant A",
+      "machines": {
+        "A1": {
+          "description": "Plant A A1",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        },
+        "A2": {
+          "description": "Plant A A2",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        },
+        "A3": {
+          "description": "Plant A A3",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Tube Rotation": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 5.5,
+              "warning_current": 6.5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        },
+        "A4": {
+          "description": "Plant A A4",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec2 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec3 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec4 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec5 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec6 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec7 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Invert": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec8 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        }
+      }
+    },
+    "G": {
+      "name": "Plant G",
+      "machines": {
+        "G1": {
+          "description": "Plant G G1",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        },
+        "G2": {
+          "description": "Plant G G2",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Takeout": {
+              "normal_current": 2.5,
+              "warning_current": 3,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        },
+        "G3A": {
+          "description": "Plant G G3A",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Main Conveyor (Shared)": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer (Shared)": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor (Shared)": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker (Shared)": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        },
+        "G3B": {
+          "description": "Plant G G3B",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "TubeRotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "TubeHeight": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear1": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear2": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Takeout": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 50,
+              "warning_temperature": 65,
+              "normal_i2t": 25,
+              "warning_i2t": 40
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        }
+      }
+    },
+    "K": {
+      "name": "Plant K",
+      "machines": {
+        "K1": {
+          "description": "Plant K K1",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Tube Rotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Tube Height": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        },
+        "K2": {
+          "description": "Plant K K2",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Tube Rotation": {
+              "normal_current": 2,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 5.5,
+              "warning_current": 6.5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        },
+        "K3": {
+          "description": "Plant K K3",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Tube Rotation": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 5.5,
+              "warning_current": 6.5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        },
+        "K4": {
+          "description": "Plant K K4",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Feeder": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Tube Rotation": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Tube Height": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Shear": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Gob Distributor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Sec1 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec1 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec2 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec3 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec4 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec5 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec6 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec7 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Arm": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            },
+            "Sec8 Pusher Finger": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 40,
+              "warning_temperature": 55,
+              "normal_i2t": 15,
+              "warning_i2t": 28
+            }
+          }
+        }
+      }
+    },
+    "E": {
+      "name": "Plant E",
+      "machines": {
+        "E1": {
+          "description": "Plant E E1",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Tube Rotation": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 5.5,
+              "warning_current": 6.5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Drum": {
+              "normal_current": 5,
+              "warning_current": 6,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Pusher": {
+              "normal_current": 5,
+              "warning_current": 6,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        },
+        "E2": {
+          "description": "Plant E E2",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Tube Rotation": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 5.5,
+              "warning_current": 6.5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        },
+        "E3": {
+          "description": "Plant E E3",
+          "parameters": [
+            "current",
+            "temperature",
+            "i2t"
+          ],
+          "motors": {
+            "Tube Rotation": {
+              "normal_current": 2,
+              "warning_current": 3,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Feeder": {
+              "normal_current": 5.5,
+              "warning_current": 6.5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Drum": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Pusher": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Main Conveyor": {
+              "normal_current": 4,
+              "warning_current": 5,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Ware Transfer": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Cross Conveyor": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            },
+            "Stacker": {
+              "normal_current": 3,
+              "warning_current": 4,
+              "normal_temperature": 45,
+              "warning_temperature": 60,
+              "normal_i2t": 20,
+              "warning_i2t": 35
+            }
+          }
+        }
+      }
+    }
+  }
+}

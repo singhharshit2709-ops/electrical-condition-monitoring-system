@@ -1,0 +1,846 @@
+"""
+server.py  –  Electrical Condition Monitoring  |  FastAPI Backend
+=================================================================
+Architecture
+------------
+* Thresholds are loaded EXCLUSIVELY from machine_config.json at startup.
+* No thresholds are hardcoded anywhere in this file.
+* Status classification: Normal → Warning → Alarm is driven purely by
+  the config values, making the system fully data-driven.
+* Designed to be drop-in ready for future PLC / OPC-UA streaming by
+  replacing the /readings endpoint with a WebSocket or MQTT subscriber.
+
+Dependencies
+------------
+    pip install fastapi uvicorn pydantic gspread google-auth python-dotenv
+
+Run
+---
+    uvicorn server:app --reload --port 8000
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, model_validator
+
+# Load environment variables early
+load_dotenv()
+
+# ── Google Sheets (optional dependency) ──────────────────────────────────────
+try:
+    import gspread
+    from google.oauth2.service_account import Credentials as GServiceCredentials
+    _GSPREAD_AVAILABLE = True
+except ImportError:
+    _GSPREAD_AVAILABLE = False
+
+# ─────────────────────────────────────────────
+# Logging
+# ─────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
+# ─────────────────────────────────────────────
+# Constants
+# ─────────────────────────────────────────────
+CONFIG_PATH = Path(__file__).parent / "machine_config.json"
+
+STATUS_NORMAL  = "Normal"
+STATUS_WARNING = "Warning"
+STATUS_ALARM   = "Alarm"
+
+readings_cache: list[dict[str, Any]] = []
+acknowledged_alarm_ids: set[str] = set()
+
+# ── Google Sheets runtime state ───────────────────────────────────────────────
+_sheets_enabled: bool = False          # flipped to True only after successful init
+_sheets_worksheet = None               # gspread.Worksheet | None
+
+# Worksheet column order — must match _row_from_doc() below
+_SHEETS_HEADERS = [
+    "id", "plant", "machine", "motor",
+    "current", "temperature", "i2t",
+    "normal_current", "warning_current",
+    "normal_temperature", "warning_temperature",
+    "normal_i2t", "warning_i2t",
+    "status", "timestamp",
+    "entry_source", "verified_by", "notes",
+    "has_photo", "bulk_entry",
+]
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Config Loader
+# ══════════════════════════════════════════════════════════════════════
+
+def load_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
+    """Load and return the raw machine_config.json as a dict."""
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with path.open("r", encoding="utf-8") as fh:
+        config = json.load(fh)
+    logger.info("Loaded config v%s from %s", config.get("schema_version", "?"), path)
+    return config
+
+
+def get_motor_thresholds(
+    config: dict[str, Any],
+    plant_id: str,
+    machine_id: str,
+    motor_name: str,
+) -> dict[str, float]:
+    """
+    Return the threshold dict for a specific motor.
+    Raises HTTPException 404 if plant / machine / motor is not found.
+    """
+    try:
+        thresholds: dict[str, float] = (
+            config["plants"][plant_id]["machines"][machine_id]["motors"][motor_name]
+        )
+        return thresholds
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Configuration not found: {exc} "
+                   f"(plant={plant_id}, machine={machine_id}, motor={motor_name})",
+        ) from exc
+
+
+def get_machine_parameters(
+    config: dict[str, Any],
+    plant_id: str,
+    machine_id: str,
+) -> list[str]:
+    """Return the active parameter list for a machine (e.g. ['current', 'temperature', 'i2t'])."""
+    try:
+        return config["plants"][plant_id]["machines"][machine_id]["parameters"]
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Machine config not found: {exc}",
+        ) from exc
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Status Classification Helpers
+# ══════════════════════════════════════════════════════════════════════
+
+def classify_value(
+    value: float,
+    normal_limit: float,
+    warning_limit: float,
+) -> str:
+    """
+    Three-zone classification:
+        value < normal_limit                 → Normal
+        normal_limit ≤ value ≤ warning_limit → Warning
+        value > warning_limit             → Alarm
+    """
+    if value < normal_limit:
+        return STATUS_NORMAL
+    if value <= warning_limit:
+        return STATUS_WARNING
+    return STATUS_ALARM
+
+
+def classify_motor_reading(
+    reading: MotorReading,
+    thresholds: dict[str, float],
+    active_params: list[str],
+) -> MotorResult:
+    """
+    Apply threshold classification to every active parameter of a reading.
+    The overall motor status is the most severe status across all parameters.
+    """
+    param_statuses: dict[str, ParameterStatus] = {}
+    severity_rank = {STATUS_NORMAL: 0, STATUS_WARNING: 1, STATUS_ALARM: 2}
+    worst_status = STATUS_NORMAL
+
+    param_map = {
+        "current":     ("current",     "normal_current",     "warning_current"),
+        "temperature": ("temperature", "normal_temperature", "warning_temperature"),
+        "i2t":         ("i2t",         "normal_i2t",         "warning_i2t"),
+    }
+
+    for param in active_params:
+        if param not in param_map:
+            continue
+
+        reading_attr, normal_key, warning_key = param_map[param]
+        value: float | None = getattr(reading, reading_attr, None)
+
+        if value is None:
+            # Parameter not supplied in this reading – skip silently
+            continue
+
+        if normal_key not in thresholds or warning_key not in thresholds:
+            # Parameter not configured for this motor – skip
+            continue
+
+        status = classify_value(
+            value=value,
+            normal_limit=thresholds[normal_key],
+            warning_limit=thresholds[warning_key],
+        )
+        param_statuses[param] = ParameterStatus(
+            value=value,
+            normal_limit=thresholds[normal_key],
+            warning_limit=thresholds[warning_key],
+            status=status,
+        )
+        if severity_rank[status] > severity_rank[worst_status]:
+            worst_status = status
+
+    return MotorResult(
+        motor=reading.motor,
+        overall_status=worst_status,
+        parameters=param_statuses,
+        timestamp=reading.timestamp or datetime.now(timezone.utc).isoformat(),
+    )
+
+
+def severity_order(result: MotorResult) -> int:
+    """Sort key: Alarm first, then Warning, then Normal."""
+    return {STATUS_ALARM: 0, STATUS_WARNING: 1, STATUS_NORMAL: 2}.get(
+        result.overall_status, 3
+    )
+
+
+def status_rank(status: str) -> int:
+    return {STATUS_NORMAL: 0, STATUS_WARNING: 1, STATUS_ALARM: 2}.get(status, 0)
+
+
+def health_percent_for_status(status: str) -> int:
+    if status == STATUS_ALARM:
+        return 0
+    if status == STATUS_WARNING:
+        return 70
+    return 100
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Google Sheets Persistence Layer
+# ══════════════════════════════════════════════════════════════════════
+
+def _row_from_doc(doc: dict[str, Any]) -> list:
+    """Convert a reading document dict into an ordered list matching _SHEETS_HEADERS."""
+    return [str(doc.get(col, "")) for col in _SHEETS_HEADERS]
+
+
+def init_google_sheets() -> None:
+    """
+    Initialise the Google Sheets connection at startup.
+    Reads environment variables and connects via service account file path.
+    """
+    global _sheets_enabled, _sheets_worksheet
+
+    if os.environ.get("GOOGLE_SHEETS_ENABLED", "false").lower() != "true":
+        logger.info("Google Sheets disabled (GOOGLE_SHEETS_ENABLED != true)")
+        return
+
+    if not _GSPREAD_AVAILABLE:
+        logger.warning(
+            "Google Sheets disabled — gspread / google-auth not installed. "
+            "Run: pip install gspread google-auth"
+        )
+        return
+
+    sheet_id = os.environ.get("GOOGLE_SHEET_ID", "").strip()
+
+    service_account_file = os.environ.get(
+        "GOOGLE_SERVICE_ACCOUNT_FILE",
+        "ecm-project-497106-afa1bd2f0801.json"
+    ).strip()
+
+    if not sheet_id:
+        logger.warning("Google Sheets disabled — GOOGLE_SHEET_ID is not set")
+        return
+
+    # Verify and resolve relative paths correctly relative to server.py location
+    file_path = Path(service_account_file)
+    if not file_path.is_absolute() and not file_path.exists():
+        resolved_path = Path(__file__).parent / file_path.name
+        if resolved_path.exists():
+            service_account_file = str(resolved_path)
+            logger.info("Resolved service account file to absolute path: %s", service_account_file)
+
+    if not os.path.exists(service_account_file):
+        logger.warning(
+            "Google Sheets disabled — service account file not found: %s",
+            service_account_file,
+        )
+        return
+
+    # Safe diagnostic debug logs exactly before authentication attempt
+    logger.info("SHEET_ID=%r", sheet_id)
+    logger.info("SERVICE_ACCOUNT_FILE=%r", service_account_file)
+
+    try:
+        creds = GServiceCredentials.from_service_account_file(
+            service_account_file,
+            scopes=[
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+        )
+        client      = gspread.authorize(creds)
+        spreadsheet = client.open_by_key(sheet_id)
+
+        # Get or create the Readings worksheet
+        try:
+            worksheet = spreadsheet.worksheet("Readings")
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = spreadsheet.add_worksheet(
+                title="Readings", rows=10000, cols=len(_SHEETS_HEADERS)
+            )
+            worksheet.append_row(_SHEETS_HEADERS)
+            logger.info("Google Sheets — created 'Readings' worksheet with headers")
+
+        # Ensure headers exist on row 1 if the sheet was created externally
+        existing_headers = worksheet.row_values(1)
+        if existing_headers != _SHEETS_HEADERS:
+            worksheet.insert_row(_SHEETS_HEADERS, index=1)
+            logger.info("Google Sheets — inserted header row")
+
+        _sheets_worksheet = worksheet
+        _sheets_enabled   = True
+        logger.info("Google Sheets connected (sheet_id=%s, worksheet='Readings')", sheet_id)
+
+    except json.JSONDecodeError as exc:
+        logger.error("Google Sheets disabled — JSON validation error: %s", exc)
+    except gspread.exceptions.SpreadsheetNotFound as exc:
+        logger.error("Google Sheets disabled — Spreadsheet not found (404) for ID %r: %s", sheet_id, exc)
+    except gspread.exceptions.APIError as exc:
+        logger.error("Google Sheets disabled — API error during init: %s", exc)
+    except Exception as exc:
+        logger.error("Google Sheets disabled — unexpected error during init: %s", exc)
+
+
+def save_reading_to_sheets(doc: dict[str, Any]) -> None:
+    """
+    Persist a single reading document to the Readings worksheet.
+    Called by /condition-monitoring (single-entry path).
+    """
+    if not _sheets_enabled or _sheets_worksheet is None:
+        return
+    try:
+        _sheets_worksheet.append_row(_row_from_doc(doc), value_input_option="RAW")
+        logger.info(
+            "Saved 1 reading to Google Sheets (motor=%s, plant=%s, machine=%s)",
+            doc.get("motor"), doc.get("plant"), doc.get("machine"),
+        )
+    except gspread.exceptions.APIError as exc:
+        logger.error("Google Sheets write failed (APIError): %s", exc)
+    except Exception as exc:
+        logger.error("Google Sheets write failed: %s", exc)
+
+
+def save_bulk_readings_to_sheets(docs: list[dict[str, Any]]) -> None:
+    """
+    Persist multiple reading documents to the Readings worksheet.
+    Called by /condition-monitoring/bulk.
+    """
+    if not _sheets_enabled or _sheets_worksheet is None:
+        return
+    if not docs:
+        return
+    try:
+        rows = [_row_from_doc(doc) for doc in docs]
+        _sheets_worksheet.append_rows(rows, value_input_option="RAW")
+        logger.info("Saved %d reading(s) to Google Sheets (bulk)", len(rows))
+    except gspread.exceptions.APIError as exc:
+        logger.error("Google Sheets bulk write failed (APIError): %s", exc)
+    except Exception as exc:
+        logger.error("Google Sheets bulk write failed: %s", exc)
+
+
+def reading_doc_from_result(
+    plant_id: str,
+    machine_id: str,
+    result: MotorResult,
+    source: dict[str, Any] | None = None,
+    bulk_entry: bool = False,
+) -> dict[str, Any]:
+    source = source or {}
+    params = result.parameters
+    current = params.get("current")
+    temperature = params.get("temperature")
+    i2t = params.get("i2t")
+    return {
+        "id": str(uuid.uuid4()),
+        "plant": plant_id,
+        "machine": machine_id,
+        "motor": result.motor,
+        "current": current.value if current else source.get("current"),
+        "temperature": temperature.value if temperature else source.get("temperature"),
+        "i2t": i2t.value if i2t else source.get("i2t"),
+        "normal_current": current.normal_limit if current else source.get("normal_current"),
+        "warning_current": current.warning_limit if current else source.get("warning_current"),
+        "normal_temperature": temperature.normal_limit if temperature else source.get("normal_temperature"),
+        "warning_temperature": temperature.warning_limit if temperature else source.get("warning_temperature"),
+        "normal_i2t": i2t.normal_limit if i2t else source.get("normal_i2t"),
+        "warning_i2t": i2t.warning_limit if i2t else source.get("warning_i2t"),
+        "status": result.overall_status,
+        "timestamp": result.timestamp,
+        "entry_source": source.get("entry_source"),
+        "verified_by": source.get("verified_by") or source.get("technician"),
+        "notes": source.get("notes"),
+        "has_photo": bool(source.get("photo_base64")),
+        "bulk_entry": bulk_entry,
+    }
+
+
+async def process_and_store_readings(
+    payload: ReadingsBatchRequest,
+    source_readings: list[dict[str, Any]] | None = None,
+    bulk_entry: bool = False,
+) -> ReadingsBatchResponse:
+    response = await submit_readings(payload)
+    source_by_motor = {
+        item.get("motor"): item
+        for item in (source_readings or [])
+        if isinstance(item, dict)
+    }
+    new_docs: list[dict[str, Any]] = []
+    for result in response.results:
+        doc = reading_doc_from_result(
+            payload.plant_id,
+            payload.machine_id,
+            result,
+            source_by_motor.get(result.motor, {}),
+            bulk_entry=bulk_entry,
+        )
+        readings_cache.append(doc)
+        new_docs.append(doc)
+    if len(readings_cache) > 1000:
+        del readings_cache[: len(readings_cache) - 1000]
+
+    # ── Persist to Google Sheets ──
+    if bulk_entry:
+        save_bulk_readings_to_sheets(new_docs)
+    else:
+        for doc in new_docs:
+            save_reading_to_sheets(doc)
+    return response
+
+
+def latest_readings() -> list[dict[str, Any]]:
+    latest: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for reading in readings_cache:
+        latest[(reading["plant"], reading["machine"], reading["motor"])] = reading
+    return list(latest.values())
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Pydantic Schemas
+# ══════════════════════════════════════════════════════════════════════
+
+class MotorReading(BaseModel):
+    """A single sensor reading for one motor."""
+    motor:       str            = Field(..., description="Motor name, must match machine_config.json")
+    current:     float | None  = Field(None, ge=0.0, description="Phase current in Amperes")
+    temperature: float | None  = Field(None, ge=0.0, description="Motor temperature in °C")
+    i2t:         float | None  = Field(None, ge=0.0, description="Thermal load index A²s")
+    timestamp:   str  | None  = Field(None, description="ISO-8601 UTC timestamp; auto-filled if absent")
+
+    @model_validator(mode="after")
+    def at_least_one_param(self) -> MotorReading:
+        if self.current is None and self.temperature is None and self.i2t is None:
+            raise ValueError("At least one of current / temperature / i2t must be provided.")
+        return self
+
+
+class ReadingsBatchRequest(BaseModel):
+    """Batch of motor readings for a specific machine."""
+    plant_id:   str                  = Field(..., examples=["A"])
+    machine_id: str                  = Field(..., examples=["A1"])
+    readings:   list[MotorReading]   = Field(..., min_length=1)
+
+
+class ParameterStatus(BaseModel):
+    """Status detail for a single parameter."""
+    value:         float
+    normal_limit:  float
+    warning_limit: float
+    status:        str   = Field(..., pattern="^(Normal|Warning|Alarm)$")
+
+
+class MotorResult(BaseModel):
+    """Classification result for a single motor."""
+    motor:          str
+    overall_status: str = Field(..., pattern="^(Normal|Warning|Alarm)$")
+    parameters:     dict[str, ParameterStatus]
+    timestamp:      str
+
+
+class ReadingsBatchResponse(BaseModel):
+    """Full response for a batch of readings."""
+    plant_id:      str
+    machine_id:    str
+    processed_at:  str
+    summary: dict[str, int] = Field(
+        description="Count of motors per status level"
+    )
+    results:       list[MotorResult]
+
+
+class MotorConfigResponse(BaseModel):
+    """Thresholds returned for a single motor."""
+    plant_id:   str
+    machine_id: str
+    motor:      str
+    thresholds: dict[str, float]
+    parameters: list[str]
+
+
+class MachineConfigResponse(BaseModel):
+    """All motor thresholds for a machine."""
+    plant_id:   str
+    machine_id: str
+    parameters: list[str]
+    motors:     dict[str, dict[str, float]]
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Application Bootstrap
+# ══════════════════════════════════════════════════════════════════════
+
+app = FastAPI(
+    title="Electrical Condition Monitoring API",
+    description=(
+        "Threshold-based motor health monitoring. "
+        "All limits are driven by machine_config.json – zero hardcoded values."
+    ),
+    version="2.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    app.state.config = load_config()
+    init_google_sheets()
+    logger.info("Condition monitoring server ready.")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Routes – Configuration Inspection
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get(
+    "/config/{plant_id}/{machine_id}",
+    response_model=MachineConfigResponse,
+    tags=["Configuration"],
+    summary="Get all motor thresholds for a machine",
+)
+async def get_machine_config(plant_id: str, machine_id: str) -> MachineConfigResponse:
+    config: dict[str, Any] = app.state.config
+    try:
+        machine = config["plants"][plant_id]["machines"][machine_id]
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Plant '{plant_id}' / Machine '{machine_id}' not found in config.",
+        )
+    return MachineConfigResponse(
+        plant_id=plant_id,
+        machine_id=machine_id,
+        parameters=machine["parameters"],
+        motors=machine["motors"],
+    )
+
+
+@app.get(
+    "/config/{plant_id}/{machine_id}/{motor_name}",
+    response_model=MotorConfigResponse,
+    tags=["Configuration"],
+    summary="Get thresholds for a single motor",
+)
+async def get_motor_config(
+    plant_id: str, machine_id: str, motor_name: str
+) -> MotorConfigResponse:
+    config: dict[str, Any] = app.state.config
+    thresholds = get_motor_thresholds(config, plant_id, machine_id, motor_name)
+    params = get_machine_parameters(config, plant_id, machine_id)
+    return MotorConfigResponse(
+        plant_id=plant_id,
+        machine_id=machine_id,
+        motor=motor_name,
+        thresholds=thresholds,
+        parameters=params,
+    )
+
+
+@app.get(
+    "/config/plants",
+    tags=["Configuration"],
+    summary="List all configured plants and machines",
+)
+async def list_plants() -> dict[str, Any]:
+    config: dict[str, Any] = app.state.config
+    result = {}
+    for plant_id, plant_data in config["plants"].items():
+        result[plant_id] = {
+            "name": plant_data.get("name"),
+            "machines": {
+                mid: {
+                    "parameters": mdata.get("parameters", []),
+                    "motor_count": len(mdata.get("motors", {})),
+                }
+                for mid, mdata in plant_data["machines"].items()
+            },
+        }
+    return result
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Routes – Readings & Status
+# ══════════════════════════════════════════════════════════════════════
+
+@app.post(
+    "/readings",
+    response_model=ReadingsBatchResponse,
+    tags=["Readings"],
+    summary="Submit motor readings and receive status classification",
+)
+async def submit_readings(payload: ReadingsBatchRequest) -> ReadingsBatchResponse:
+    config: dict[str, Any] = app.state.config
+    active_params = get_machine_parameters(config, payload.plant_id, payload.machine_id)
+
+    results: list[MotorResult] = []
+    errors: list[str] = []
+
+    for reading in payload.readings:
+        try:
+            thresholds = get_motor_thresholds(
+                config, payload.plant_id, payload.machine_id, reading.motor
+            )
+        except HTTPException as exc:
+            errors.append(str(exc.detail))
+            continue
+
+        result = classify_motor_reading(reading, thresholds, active_params)
+        results.append(result)
+
+    if errors:
+        logger.warning("Skipped %d unrecognised motors: %s", len(errors), errors)
+
+    results.sort(key=severity_order)
+
+    summary = {STATUS_NORMAL: 0, STATUS_WARNING: 0, STATUS_ALARM: 0}
+    for r in results:
+        summary[r.overall_status] += 1
+
+    return ReadingsBatchResponse(
+        plant_id=payload.plant_id,
+        machine_id=payload.machine_id,
+        processed_at=datetime.now(timezone.utc).isoformat(),
+        summary=summary,
+        results=results,
+    )
+
+
+@app.post(
+    "/readings/single",
+    response_model=MotorResult,
+    tags=["Readings"],
+    summary="Submit a single motor reading",
+)
+async def submit_single_reading(
+    plant_id: str,
+    machine_id: str,
+    reading: MotorReading,
+) -> MotorResult:
+    config: dict[str, Any] = app.state.config
+    active_params = get_machine_parameters(config, plant_id, machine_id)
+    thresholds    = get_motor_thresholds(config, plant_id, machine_id, reading.motor)
+    return classify_motor_reading(reading, thresholds, active_params)
+
+
+@app.post("/condition-monitoring/bulk", tags=["Compatibility"])
+@app.post("/api/condition-monitoring/bulk", tags=["Compatibility"])
+async def add_bulk_condition_data(data: dict[str, Any]) -> dict[str, Any]:
+    plant_id = data.get("plant_id") or data.get("plant")
+    machine_id = data.get("machine_id") or data.get("machine")
+    readings = data.get("readings") or []
+    if not plant_id or not machine_id or not readings:
+        raise HTTPException(status_code=422, detail="plant, machine and readings are required")
+
+    payload = ReadingsBatchRequest(
+        plant_id=plant_id,
+        machine_id=machine_id,
+        readings=[
+            MotorReading(
+                motor=item.get("motor"),
+                current=item.get("current") if item.get("current") not in ("", None) else None,
+                temperature=item.get("temperature") if item.get("temperature") not in ("", None) else None,
+                i2t=item.get("i2t") if item.get("i2t") not in ("", None) else None,
+                timestamp=item.get("timestamp"),
+            )
+            for item in readings
+        ],
+    )
+    response = await process_and_store_readings(payload, readings, bulk_entry=True)
+    return {
+        "message": "Bulk readings submitted successfully",
+        "inserted_count": len(response.results),
+        "summary": response.summary,
+        "results": [result.model_dump() for result in response.results],
+    }
+
+
+@app.post("/condition-monitoring", tags=["Compatibility"])
+@app.post("/api/condition-monitoring", tags=["Compatibility"])
+async def add_condition_data(data: dict[str, Any]) -> dict[str, Any]:
+    plant_id = data.get("plant_id") or data.get("plant")
+    machine_id = data.get("machine_id") or data.get("machine")
+    if not plant_id or not machine_id or not data.get("motor"):
+        raise HTTPException(status_code=422, detail="plant, machine and motor are required")
+
+    payload = ReadingsBatchRequest(
+        plant_id=plant_id,
+        machine_id=machine_id,
+        readings=[
+            MotorReading(
+                motor=data.get("motor"),
+                current=data.get("current") if data.get("current") not in ("", None) else None,
+                temperature=data.get("temperature") if data.get("temperature") not in ("", None) else None,
+                i2t=data.get("i2t") if data.get("i2t") not in ("", None) else None,
+                timestamp=data.get("timestamp"),
+            )
+        ],
+    )
+    response = await process_and_store_readings(payload, [data], bulk_entry=False)
+    result = response.results[0] if response.results else None
+    return {
+        "message": "Reading submitted successfully",
+        "bulk_entry_flag": False,
+        "status": result.overall_status if result else None,
+        "result": result.model_dump() if result else None,
+    }
+
+
+@app.get("/condition-monitoring/machine/{plant_id}/{machine_id}", tags=["Compatibility"])
+@app.get("/api/condition-monitoring/machine/{plant_id}/{machine_id}", tags=["Compatibility"])
+async def get_machine_readings(plant_id: str, machine_id: str) -> list[dict[str, Any]]:
+    return [
+        reading
+        for reading in readings_cache
+        if reading["plant"] == plant_id and reading["machine"] == machine_id
+    ]
+
+
+@app.get("/condition-monitoring/plant/{plant_id}", tags=["Compatibility"])
+@app.get("/api/condition-monitoring/plant/{plant_id}", tags=["Compatibility"])
+async def get_plant_readings(plant_id: str) -> list[dict[str, Any]]:
+    return [reading for reading in readings_cache if reading["plant"] == plant_id]
+
+
+@app.get("/condition-monitoring/recent", tags=["Compatibility"])
+@app.get("/api/condition-monitoring/recent", tags=["Compatibility"])
+async def get_recent_readings(limit: int = 25) -> list[dict[str, Any]]:
+    return list(reversed(readings_cache[-limit:]))
+
+
+@app.get("/active-alarms", tags=["Compatibility"])
+@app.get("/api/active-alarms", tags=["Compatibility"])
+async def get_active_alarms() -> list[dict[str, Any]]:
+    return [
+        reading
+        for reading in reversed(readings_cache)
+        if reading["status"] == STATUS_ALARM and reading["id"] not in acknowledged_alarm_ids
+    ]
+
+
+@app.post("/acknowledge-alarm/{alarm_id}", tags=["Compatibility"])
+@app.post("/api/acknowledge-alarm/{alarm_id}", tags=["Compatibility"])
+async def acknowledge_alarm(alarm_id: str) -> dict[str, str]:
+    acknowledged_alarm_ids.add(alarm_id)
+    return {"status": "ok", "id": alarm_id}
+
+
+@app.get("/machine-health/{plant_id}", tags=["Compatibility"])
+@app.get("/api/machine-health/{plant_id}", tags=["Compatibility"])
+async def get_machine_health(plant_id: str) -> list[dict[str, Any]]:
+    config: dict[str, Any] = app.state.config
+    machines = config["plants"].get(plant_id, {}).get("machines", {})
+    latest = latest_readings()
+    result = []
+    for machine_id, machine_data in machines.items():
+        statuses = [
+            reading["status"]
+            for reading in latest
+            if reading["plant"] == plant_id and reading["machine"] == machine_id
+        ]
+        counts = {
+            STATUS_NORMAL: statuses.count(STATUS_NORMAL),
+            STATUS_WARNING: statuses.count(STATUS_WARNING),
+            STATUS_ALARM: statuses.count(STATUS_ALARM),
+        }
+        worst_status = max(statuses, key=status_rank) if statuses else STATUS_NORMAL
+        total = len(statuses) or len(machine_data.get("motors", {}))
+        result.append(
+            {
+                "plant": plant_id,
+                "machine": machine_id,
+                "status": worst_status,
+                "ok": counts[STATUS_NORMAL],
+                "warning": counts[STATUS_WARNING],
+                "alarm": counts[STATUS_ALARM],
+                "total": total,
+                "health_percent": health_percent_for_status(worst_status),
+            }
+        )
+    return result
+
+
+@app.get("/plant-health", tags=["Compatibility"])
+@app.get("/api/plant-health", tags=["Compatibility"])
+async def get_plant_health() -> list[dict[str, Any]]:
+    config: dict[str, Any] = app.state.config
+    latest = latest_readings()
+    result = []
+    for plant_id, plant_data in config["plants"].items():
+        machine_health = await get_machine_health(plant_id)
+        statuses = [machine["status"] for machine in machine_health]
+        worst_status = max(statuses, key=status_rank) if statuses else STATUS_NORMAL
+        plant_readings = [reading for reading in latest if reading["plant"] == plant_id]
+        result.append(
+            {
+                "plant": plant_id,
+                "status": worst_status,
+                "ok": sum(1 for reading in plant_readings if reading["status"] == STATUS_NORMAL),
+                "warning": sum(1 for reading in plant_readings if reading["status"] == STATUS_WARNING),
+                "alarm": sum(1 for reading in plant_readings if reading["status"] == STATUS_ALARM),
+                "total": sum(len(machine.get("motors", {})) for machine in plant_data["machines"].values()),
+                "health_percent": health_percent_for_status(worst_status),
+            }
+        )
+    return result
+
+
+@app.post("/api/query", tags=["Compatibility"])
+async def expert_query(data: dict[str, Any]) -> dict[str, Any]:
+    query = data.get("query", "")
+    return {"status": "success", "query_received": query, "response": "Query tracking placeholder."}
