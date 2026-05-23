@@ -1,6 +1,22 @@
 # Neutral Glass — G Tank Electrical Condition Monitoring
 
-Electrical condition monitoring for the G Tank (plant **GT**): current, temperature, and vibration readings with dashboard, bulk entry, alarms, and Google Sheets logging.
+**Version 1.0.0** · Plant **GT** · 10 areas · 42 motors
+
+Electrical condition monitoring for the G Tank: current, temperature, and vibration readings with dashboard, bulk entry, alarms, and Google Sheets logging.
+
+## Manager handover — links to share
+
+| Item | URL |
+|------|-----|
+| **Live dashboard** | https://electrical-condition-monitoring-system.onrender.com/ |
+| **GitHub repository** | https://github.com/singhharshit2709-ops/electrical-condition-monitoring-system |
+| **Latest release commit** | https://github.com/singhharshit2709-ops/electrical-condition-monitoring-system/commit/a594a83 |
+| **API documentation (Swagger)** | https://electrical-condition-monitoring-system.onrender.com/docs |
+| **Health check** | https://electrical-condition-monitoring-system.onrender.com/health |
+| **Google Sheet (Readings)** | https://docs.google.com/spreadsheets/d/1BLjtK2ds_cMN5H13gkfntxL6YcKDZMyXfjlS3X54VgQ/edit |
+| **Render service dashboard** | https://dashboard.render.com/ (open service **condition-monitoring-api**) |
+
+Further detail: [PRODUCTION_RELEASE.md](./PRODUCTION_RELEASE.md) · [RELEASE_NOTES_v1.0.0.md](./RELEASE_NOTES_v1.0.0.md) · [RENDER_BUILD.md](./RENDER_BUILD.md)
 
 ## Quick links (production)
 
