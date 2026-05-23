@@ -1131,13 +1131,13 @@ def _serve_dashboard_index() -> FileResponse | JSONResponse:
     )
 
 
-@app.get("/", include_in_schema=False)
-async def dashboard_root() -> FileResponse | JSONResponse:
+@app.get("/", include_in_schema=False, response_model=None)
+async def dashboard_root():
     return _serve_dashboard_index()
 
 
-@app.get("/{spa_path:path}", include_in_schema=False)
-async def dashboard_spa_or_asset(spa_path: str) -> FileResponse | JSONResponse:
+@app.get("/{spa_path:path}", include_in_schema=False, response_model=None)
+async def dashboard_spa_or_asset(spa_path: str):
     if spa_path.startswith(_SPA_API_PREFIXES):
         raise HTTPException(status_code=404, detail="Not Found")
     asset = STATIC_DIR / spa_path
