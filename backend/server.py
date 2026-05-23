@@ -74,10 +74,10 @@ _sheets_worksheet = None               # gspread.Worksheet | None
 # Worksheet column order — must match _row_from_doc() below
 _SHEETS_HEADERS = [
     "id", "plant", "machine", "motor",
-    "current", "temperature", "i2t",
+    "current", "temperature", "vibration",
     "normal_current", "warning_current",
     "normal_temperature", "warning_temperature",
-    "normal_i2t", "warning_i2t",
+    "normal_vibration", "warning_vibration",
     "status", "timestamp",
     "entry_source", "verified_by", "notes",
     "has_photo", "bulk_entry",
@@ -126,7 +126,7 @@ def get_machine_parameters(
     plant_id: str,
     machine_id: str,
 ) -> list[str]:
-    """Return the active parameter list for a machine (e.g. ['current', 'temperature', 'i2t'])."""
+    """Return the active parameter list for a machine (e.g. ['current', 'temperature', 'vibration'])."""
     try:
         return config["plants"][plant_id]["machines"][machine_id]["parameters"]
     except KeyError as exc:
@@ -174,7 +174,7 @@ def classify_motor_reading(
     param_map = {
         "current":     ("current",     "normal_current",     "warning_current"),
         "temperature": ("temperature", "normal_temperature", "warning_temperature"),
-        "i2t":         ("i2t",         "normal_i2t",         "warning_i2t"),
+        "vibration":   ("vibration",   "normal_vibration",   "warning_vibration"),
     }
 
     for param in active_params:
@@ -420,6 +420,32 @@ def save_bulk_readings_to_sheets(docs: list[dict[str, Any]]) -> None:
         logger.error("Google Sheets bulk write failed: %s", exc)
 
 
+def _optional_measurement(value: Any) -> float | None:
+    if value in ("", None):
+        return None
+    return value
+
+
+def _vibration_from_payload(payload: dict[str, Any]) -> float | None:
+    """
+    TODO: Remove after frontend Change 2 — accept legacy ``i2t`` as ``vibration``.
+    """
+    if payload.get("vibration") not in ("", None):
+        return _optional_measurement(payload.get("vibration"))
+    if payload.get("i2t") not in ("", None):
+        return _optional_measurement(payload.get("i2t"))
+    return None
+
+
+def _vibration_limit_from_payload(payload: dict[str, Any], limit_key: str, legacy_key: str) -> Any:
+    """
+    TODO: Remove after frontend Change 2 — accept legacy i2t limit keys on stored docs.
+    """
+    if payload.get(limit_key) not in ("", None):
+        return payload.get(limit_key)
+    return payload.get(legacy_key)
+
+
 def reading_doc_from_result(
     plant_id: str,
     machine_id: str,
@@ -431,7 +457,7 @@ def reading_doc_from_result(
     params = result.parameters
     current = params.get("current")
     temperature = params.get("temperature")
-    i2t = params.get("i2t")
+    vibration = params.get("vibration")
     return {
         "id": str(uuid.uuid4()),
         "plant": plant_id,
@@ -439,13 +465,21 @@ def reading_doc_from_result(
         "motor": result.motor,
         "current": current.value if current else source.get("current"),
         "temperature": temperature.value if temperature else source.get("temperature"),
-        "i2t": i2t.value if i2t else source.get("i2t"),
+        "vibration": vibration.value if vibration else _vibration_from_payload(source),
         "normal_current": current.normal_limit if current else source.get("normal_current"),
         "warning_current": current.warning_limit if current else source.get("warning_current"),
         "normal_temperature": temperature.normal_limit if temperature else source.get("normal_temperature"),
         "warning_temperature": temperature.warning_limit if temperature else source.get("warning_temperature"),
-        "normal_i2t": i2t.normal_limit if i2t else source.get("normal_i2t"),
-        "warning_i2t": i2t.warning_limit if i2t else source.get("warning_i2t"),
+        "normal_vibration": (
+            vibration.normal_limit
+            if vibration
+            else _vibration_limit_from_payload(source, "normal_vibration", "normal_i2t")
+        ),
+        "warning_vibration": (
+            vibration.warning_limit
+            if vibration
+            else _vibration_limit_from_payload(source, "warning_vibration", "warning_i2t")
+        ),
         "status": result.overall_status,
         "timestamp": result.timestamp,
         "entry_source": source.get("entry_source"),
@@ -535,20 +569,20 @@ class MotorReading(BaseModel):
     motor:       str            = Field(..., description="Motor name, must match machine_config.json")
     current:     float | None  = Field(None, ge=0.0, description="Phase current in Amperes")
     temperature: float | None  = Field(None, ge=0.0, description="Motor temperature in °C")
-    i2t:         float | None  = Field(None, ge=0.0, description="Thermal load index A²s")
+    vibration:   float | None  = Field(None, ge=0.0, description="Vibration in mm/s")
     timestamp:   str  | None  = Field(None, description="ISO-8601 UTC timestamp; auto-filled if absent")
 
     @model_validator(mode="after")
     def at_least_one_param(self) -> MotorReading:
-        if self.current is None and self.temperature is None and self.i2t is None:
-            raise ValueError("At least one of current / temperature / i2t must be provided.")
+        if self.current is None and self.temperature is None and self.vibration is None:
+            raise ValueError("At least one of current / temperature / vibration must be provided.")
         return self
 
 
 class ReadingsBatchRequest(BaseModel):
     """Batch of motor readings for a specific machine."""
-    plant_id:   str                  = Field(..., examples=["A"])
-    machine_id: str                  = Field(..., examples=["A1"])
+    plant_id:   str                  = Field(..., examples=["GT"])
+    machine_id: str                  = Field(..., examples=["G1"])
     readings:   list[MotorReading]   = Field(..., min_length=1)
 
 
@@ -606,7 +640,7 @@ app = FastAPI(
         "Threshold-based motor health monitoring. "
         "All limits are driven by machine_config.json – zero hardcoded values."
     ),
-    version="2.0.0",
+    version="3.0.0",
 )
 
 app.add_middleware(
@@ -773,9 +807,9 @@ async def add_bulk_condition_data(data: dict[str, Any]) -> dict[str, Any]:
         readings=[
             MotorReading(
                 motor=item.get("motor"),
-                current=item.get("current") if item.get("current") not in ("", None) else None,
-                temperature=item.get("temperature") if item.get("temperature") not in ("", None) else None,
-                i2t=item.get("i2t") if item.get("i2t") not in ("", None) else None,
+                current=_optional_measurement(item.get("current")),
+                temperature=_optional_measurement(item.get("temperature")),
+                vibration=_vibration_from_payload(item),
                 timestamp=item.get("timestamp"),
             )
             for item in readings
@@ -804,9 +838,9 @@ async def add_condition_data(data: dict[str, Any]) -> dict[str, Any]:
         readings=[
             MotorReading(
                 motor=data.get("motor"),
-                current=data.get("current") if data.get("current") not in ("", None) else None,
-                temperature=data.get("temperature") if data.get("temperature") not in ("", None) else None,
-                i2t=data.get("i2t") if data.get("i2t") not in ("", None) else None,
+                current=_optional_measurement(data.get("current")),
+                temperature=_optional_measurement(data.get("temperature")),
+                vibration=_vibration_from_payload(data),
                 timestamp=data.get("timestamp"),
             )
         ],

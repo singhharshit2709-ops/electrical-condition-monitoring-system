@@ -5,15 +5,26 @@ import { Camera, XCircle, Check } from "@phosphor-icons/react";
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const API = BACKEND_URL;
 
-const PLANT_CONFIG = {
-  A: ["A1", "A2", "A3", "A4"],
-  G: ["G1", "G2", "G3A", "G3B"],
-  K: ["K1", "K2", "K3", "K4"],
-  E: ["E1", "E2", "E3"]
+const PLANT_ID = "GT";
+const PLANT_LABEL = "Neutral Glass — G Tank Electrical Condition Monitoring";
+
+const AREA_CONFIG = {
+  GT: [
+    "G1",
+    "G2",
+    "G3",
+    "Furnace Cooling Blower",
+    "Mold Cooling Blower",
+    "Combustion Blower",
+    "Block Air Fan",
+    "Injector Blower",
+    "Electrode Cooling Blower",
+    "Electrode Water Pump",
+  ],
 };
 
 const BulkEntry = () => {
-  const [selectedPlant, setSelectedPlant] = useState("A");
+  const [selectedPlant, setSelectedPlant] = useState(PLANT_ID);
   const [selectedMachine, setSelectedMachine] = useState("");
   const [machineConfig, setMachineConfig] = useState(null);
   const [readings, setReadings] = useState({});
@@ -38,22 +49,21 @@ const BulkEntry = () => {
         : Object.keys(response.data.motors || {});
       setMachineConfig({ ...response.data, motors });
 
-      // Per-motor limits are keyed by motor name in machine_config.json.
       const motorLimits = response.data.motor_limits || response.data.motors || {};
 
       const initialReadings = {};
-      motors.forEach(motor => {
+      motors.forEach((motor) => {
         const limits = motorLimits[motor] || {};
         initialReadings[motor] = {
-          current:             "",
-          temperature:         "",
-          i2t:                 "",
-          normal_current:      String(limits.normal_current      ?? 3.0),
-          warning_current:     String(limits.warning_current     ?? 4.0),
-          normal_temperature:  String(limits.normal_temperature  ?? 60),
-          warning_temperature: String(limits.warning_temperature ?? 80),
-          normal_i2t:          String(limits.normal_i2t          ?? 1000),
-          warning_i2t:         String(limits.warning_i2t         ?? 1500),
+          current: "",
+          temperature: "",
+          vibration: "",
+          normal_current: String(limits.normal_current ?? 12),
+          warning_current: String(limits.warning_current ?? 15),
+          normal_temperature: String(limits.normal_temperature ?? 55),
+          warning_temperature: String(limits.warning_temperature ?? 70),
+          normal_vibration: String(limits.normal_vibration ?? 4.5),
+          warning_vibration: String(limits.warning_vibration ?? 7.0),
         };
       });
       setReadings(initialReadings);
@@ -75,12 +85,12 @@ const BulkEntry = () => {
   };
 
   const handleValueChange = (motor, field, value) => {
-    setReadings(prev => ({
+    setReadings((prev) => ({
       ...prev,
       [motor]: {
         ...prev[motor],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -96,22 +106,22 @@ const BulkEntry = () => {
           motor,
           current: values.current === "" ? null : Number(values.current),
           temperature: values.temperature === "" ? null : Number(values.temperature),
-          i2t: values.i2t === "" ? null : Number(values.i2t),
+          vibration: values.vibration === "" ? null : Number(values.vibration),
           normal_current: values.normal_current === "" ? null : Number(values.normal_current),
           warning_current: values.warning_current === "" ? null : Number(values.warning_current),
           normal_temperature: values.normal_temperature === "" ? null : Number(values.normal_temperature),
           warning_temperature: values.warning_temperature === "" ? null : Number(values.warning_temperature),
-          normal_i2t: values.normal_i2t === "" ? null : Number(values.normal_i2t),
-          warning_i2t: values.warning_i2t === "" ? null : Number(values.warning_i2t)
+          normal_vibration: values.normal_vibration === "" ? null : Number(values.normal_vibration),
+          warning_vibration: values.warning_vibration === "" ? null : Number(values.warning_vibration),
         })),
         technician,
         photo_base64: photoBase64,
-        entry_source: "Field"
+        entry_source: "Field",
       };
 
       await axios.post(`${API}/condition-monitoring/bulk`, bulkData);
 
-      alert("✅ All readings submitted successfully!");
+      alert("All readings submitted successfully.");
 
       setSelectedMachine("");
       setMachineConfig(null);
@@ -119,28 +129,29 @@ const BulkEntry = () => {
       setPhotoPreview(null);
       setPhotoBase64(null);
       setTechnician("");
-
     } catch (error) {
       console.error("Bulk submit error:", error);
-      alert("❌ Failed to submit readings: " + (error.response?.data?.detail || error.message));
+      alert("Failed to submit readings: " + (error.response?.data?.detail || error.message));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const hasParameters = (param) => {
-    return machineConfig?.parameters?.includes(param);
-  };
+  const hasParameters = (param) => machineConfig?.parameters?.includes(param);
 
   return (
     <div className="w-full max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-4xl font-light tracking-tight text-zinc-950">Bulk Reading Entry</h1>
-        <p className="text-sm text-zinc-700 mt-2">Enter all motor readings for a machine at once</p>
+        <p className="text-sm font-medium text-zinc-800 mt-1">Neutral Glass</p>
+        <p className="text-sm text-zinc-600 mt-0.5">G Tank Electrical Condition Monitoring</p>
+        <p className="text-sm text-zinc-700 mt-2">
+          Enter current, temperature, and vibration for all equipment in an area
+        </p>
       </div>
 
       <div className="border border-zinc-200 bg-white p-6 mb-6">
-        <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Select Machine</h3>
+        <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Select Area</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">
@@ -155,23 +166,23 @@ const BulkEntry = () => {
               }}
               className="w-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-[#002FA7] focus:ring-offset-2 rounded-none"
             >
-              {Object.keys(PLANT_CONFIG).map(p => (
-                <option key={p} value={p}>Plant {p}</option>
-              ))}
+              <option value={PLANT_ID}>{PLANT_LABEL}</option>
             </select>
           </div>
           <div>
             <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">
-              Machine *
+              Area / Line *
             </label>
             <select
               value={selectedMachine}
               onChange={(e) => setSelectedMachine(e.target.value)}
               className="w-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-[#002FA7] focus:ring-offset-2 rounded-none"
             >
-              <option value="">Select Machine</option>
-              {PLANT_CONFIG[selectedPlant]?.map(m => (
-                <option key={m} value={m}>{m}</option>
+              <option value="">Select area</option>
+              {AREA_CONFIG[selectedPlant]?.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
               ))}
             </select>
           </div>
@@ -184,10 +195,10 @@ const BulkEntry = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-medium tracking-tight text-zinc-900">
-                  {selectedPlant} - {selectedMachine} Readings ({machineConfig.motors.length} motors)
+                  {selectedMachine} — {machineConfig.motors.length} equipment
                 </h3>
                 <p className="text-sm text-zinc-600 mt-1">
-                  Parameters: {machineConfig.parameters.map(p => p.toUpperCase()).join(", ")}
+                  Parameters: {machineConfig.parameters.map((p) => p.toUpperCase()).join(", ")}
                 </p>
               </div>
             </div>
@@ -197,7 +208,7 @@ const BulkEntry = () => {
                 <thead className="bg-zinc-50">
                   <tr className="border-b-2 border-zinc-200">
                     <th className="text-left px-4 py-3 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 sticky left-0 bg-zinc-50">
-                      Motor
+                      Equipment
                     </th>
                     {hasParameters("current") && (
                       <>
@@ -213,9 +224,9 @@ const BulkEntry = () => {
                         <th className="text-center px-4 py-3 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-400">Warning</th>
                       </>
                     )}
-                    {hasParameters("i2t") && (
+                    {hasParameters("vibration") && (
                       <>
-                        <th className="text-center px-4 py-3 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">I²t (A²s) *</th>
+                        <th className="text-center px-4 py-3 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Vibration (mm/s) *</th>
                         <th className="text-center px-4 py-3 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-400">Normal</th>
                         <th className="text-center px-4 py-3 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-400">Warning</th>
                       </>
@@ -224,7 +235,7 @@ const BulkEntry = () => {
                 </thead>
                 <tbody>
                   {(machineConfig.motors || []).map((motor, idx) => (
-                    <tr key={motor} className={`border-b border-zinc-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'}`}>
+                    <tr key={motor} className={`border-b border-zinc-100 ${idx % 2 === 0 ? "bg-white" : "bg-zinc-50/50"}`}>
                       <td className="px-4 py-2 text-sm font-medium text-zinc-950 sticky left-0 bg-inherit">{motor}</td>
                       {hasParameters("current") && (
                         <>
@@ -252,16 +263,16 @@ const BulkEntry = () => {
                           </td>
                         </>
                       )}
-                      {hasParameters("i2t") && (
+                      {hasParameters("vibration") && (
                         <>
                           <td className="px-4 py-2">
-                            <input type="number" step="1" value={readings[motor]?.i2t || ""} onChange={(e) => handleValueChange(motor, "i2t", e.target.value)} className="w-24 border border-zinc-200 px-2 py-1 text-sm font-mono text-center rounded-none focus:ring-1 focus:ring-[#002FA7]" placeholder="0" required />
+                            <input type="number" step="0.1" value={readings[motor]?.vibration || ""} onChange={(e) => handleValueChange(motor, "vibration", e.target.value)} className="w-24 border border-zinc-200 px-2 py-1 text-sm font-mono text-center rounded-none focus:ring-1 focus:ring-[#002FA7]" placeholder="0.0" required />
                           </td>
                           <td className="px-4 py-2">
-                            <input type="number" step="1" value={readings[motor]?.normal_i2t || ""} onChange={(e) => handleValueChange(motor, "normal_i2t", e.target.value)} className="w-20 border border-zinc-200 px-2 py-1 text-xs font-mono text-center rounded-none bg-zinc-50" />
+                            <input type="number" step="0.1" value={readings[motor]?.normal_vibration || ""} onChange={(e) => handleValueChange(motor, "normal_vibration", e.target.value)} className="w-20 border border-zinc-200 px-2 py-1 text-xs font-mono text-center rounded-none bg-zinc-50" />
                           </td>
                           <td className="px-4 py-2">
-                            <input type="number" step="1" value={readings[motor]?.warning_i2t || ""} onChange={(e) => handleValueChange(motor, "warning_i2t", e.target.value)} className="w-20 border border-zinc-200 px-2 py-1 text-xs font-mono text-center rounded-none bg-zinc-50" />
+                            <input type="number" step="0.1" value={readings[motor]?.warning_vibration || ""} onChange={(e) => handleValueChange(motor, "warning_vibration", e.target.value)} className="w-20 border border-zinc-200 px-2 py-1 text-xs font-mono text-center rounded-none bg-zinc-50" />
                           </td>
                         </>
                       )}
@@ -276,7 +287,7 @@ const BulkEntry = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-3 block">
-                  📸 Verification Photo (If any alarm/warning)
+                  Verification photo (if any alarm/warning)
                 </label>
                 {!photoPreview ? (
                   <label className="flex items-center space-x-2 px-4 py-3 border-2 border-dashed border-zinc-300 hover:border-[#002FA7] bg-white cursor-pointer transition-all duration-150 rounded-none">
@@ -295,7 +306,7 @@ const BulkEntry = () => {
               </div>
               <div>
                 <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-3 block">
-                  Engineer's Name *
+                  Engineer&apos;s name *
                 </label>
                 <input type="text" value={technician} onChange={(e) => setTechnician(e.target.value)} placeholder="Enter your name" className="w-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-[#002FA7] focus:ring-offset-2 rounded-none" required />
               </div>
@@ -307,7 +318,7 @@ const BulkEntry = () => {
               Cancel
             </button>
             <button type="submit" disabled={submitting} className="bg-[#16A34A] text-white hover:bg-[#16A34A]/90 px-8 py-3 text-sm font-medium tracking-tight transition-all duration-150 ease-out rounded-none disabled:opacity-50 flex items-center space-x-2">
-              {submitting ? <span>Submitting...</span> : <><Check size={18} weight="bold" /><span>Submit All Readings ({machineConfig.motors.length} motors)</span></>}
+              {submitting ? <span>Submitting...</span> : <><Check size={18} weight="bold" /><span>Submit all readings ({machineConfig.motors.length})</span></>}
             </button>
           </div>
         </form>
@@ -315,13 +326,13 @@ const BulkEntry = () => {
 
       {!machineConfig && selectedMachine && (
         <div className="border border-zinc-200 bg-white p-12 text-center">
-          <p className="text-zinc-500">Loading machine configuration...</p>
+          <p className="text-zinc-500">Loading area configuration...</p>
         </div>
       )}
 
       {!selectedMachine && (
         <div className="border border-zinc-200 bg-white p-12 text-center">
-          <p className="text-zinc-500">Select a machine to start bulk entry</p>
+          <p className="text-zinc-500">Select an area to start bulk entry</p>
         </div>
       )}
     </div>

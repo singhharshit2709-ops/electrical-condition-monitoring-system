@@ -25,7 +25,7 @@ const Navigation = () => {
             <GearSix size={32} weight="fill" className="text-[#002FA7]" />
             <div>
               <h1 className="text-xl font-light tracking-tight text-zinc-950">Neutral Glass</h1>
-              <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">Instrumentation Department</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">G Tank Electrical Condition Monitoring</p>
             </div>
           </div>
           

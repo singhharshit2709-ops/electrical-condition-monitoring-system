@@ -6,16 +6,27 @@ import { Download, Plus, Warning as WarningIcon, XCircle, Camera, Image as Image
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const API = BACKEND_URL;
 
-const PLANT_CONFIG = {
-  A: ["A1", "A2", "A3", "A4"],
-  G: ["G1", "G2", "G3A", "G3B"],
-  K: ["K1", "K2", "K3", "K4"],
-  E: ["E1", "E2", "E3"]
+const PLANT_ID = "GT";
+const PLANT_LABEL = "Neutral Glass — G Tank Electrical Condition Monitoring";
+
+const AREA_CONFIG = {
+  GT: [
+    "G1",
+    "G2",
+    "G3",
+    "Furnace Cooling Blower",
+    "Mold Cooling Blower",
+    "Combustion Blower",
+    "Block Air Fan",
+    "Injector Blower",
+    "Electrode Cooling Blower",
+    "Electrode Water Pump",
+  ],
 };
 
 const ConditionMonitoring = () => {
-  const [selectedPlant, setSelectedPlant] = useState("A");
- const [selectedMachine, setSelectedMachine] = useState("A1");
+  const [selectedPlant, setSelectedPlant] = useState(PLANT_ID);
+  const [selectedMachine, setSelectedMachine] = useState("G1");
   const [chartData, setChartData] = useState([]);
   const [machineHealth, setMachineHealth] = useState([]);
   const [activeAlarms, setActiveAlarms] = useState([]);
@@ -24,17 +35,18 @@ const ConditionMonitoring = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   
   const [formData, setFormData] = useState({
-    plant: "A",
-    machine: "A1",
+    plant: PLANT_ID,
+    machine: "G1",
     motor: "",
     current: "",
     temperature: "",
+    vibration: "",
     normal_current: "",
     warning_current: "",
     entry_source: "Field",
     verified_by: "",
     notes: "",
-    photo_base64: null
+    photo_base64: null,
   });
   const [photoPreview, setPhotoPreview] = useState(null);
 
@@ -120,12 +132,13 @@ const ConditionMonitoring = () => {
         motor: formData.motor,
         current: parseFloat(formData.current),
         temperature: parseFloat(formData.temperature),
+        vibration: parseFloat(formData.vibration),
         normal_current: parseFloat(formData.normal_current),
         warning_current: parseFloat(formData.warning_current),
         entry_source: formData.entry_source,
         verified_by: formData.verified_by || null,
         notes: formData.notes || null,
-        photo_base64: formData.photo_base64
+        photo_base64: formData.photo_base64,
       });
       
       if (response.data.bulk_entry_flag) {
@@ -133,16 +146,18 @@ const ConditionMonitoring = () => {
       }
       
       setFormData({
-        plant: "A",
-        machine: "",
+        plant: PLANT_ID,
+        machine: selectedMachine,
         motor: "",
         current: "",
+        temperature: "",
+        vibration: "",
         normal_current: "",
         warning_current: "",
         entry_source: "Field",
         verified_by: "",
         notes: "",
-        photo_base64: null
+        photo_base64: null,
       });
       setPhotoPreview(null);
       setShowAddForm(false);
@@ -169,8 +184,10 @@ const ConditionMonitoring = () => {
     <div className="w-full max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-light tracking-tight text-zinc-950">Condition Monitoring</h1>
-          <p className="text-sm text-zinc-700 mt-2">Motor current tracking and health analysis</p>
+          <h1 className="text-4xl font-light tracking-tight text-zinc-950">View Data</h1>
+          <p className="text-sm font-medium text-zinc-800 mt-1">Neutral Glass</p>
+          <p className="text-sm text-zinc-600 mt-0.5">G Tank Electrical Condition Monitoring</p>
+          <p className="text-sm text-zinc-700 mt-2">Current, temperature, and vibration by area</p>
         </div>
         <button
           data-testid="add-data-btn"
@@ -212,7 +229,7 @@ const ConditionMonitoring = () => {
       {/* Add Data Form */}
       {showAddForm && (
         <div className="border border-zinc-200 bg-white p-6 mb-6">
-          <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Add Motor Current Reading</h3>
+          <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Add equipment reading</h3>
           <form onSubmit={handleAddData} className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Plant *</label>
@@ -223,14 +240,12 @@ const ConditionMonitoring = () => {
                 className="w-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-[#002FA7] focus:ring-offset-2 rounded-none"
                 required
               >
-                {Object.keys(PLANT_CONFIG).map(p => (
-                  <option key={p} value={p}>Plant {p}</option>
-                ))}
+                <option value={PLANT_ID}>{PLANT_LABEL}</option>
               </select>
             </div>
 
             <div>
-              <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Machine *</label>
+              <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Area / Line *</label>
               <select
                 data-testid="form-machine-select"
                 value={formData.machine}
@@ -239,14 +254,14 @@ const ConditionMonitoring = () => {
                 required
               >
                 <option value="">Select</option>
-                {PLANT_CONFIG[formData.plant]?.map(m => (
+                {AREA_CONFIG[formData.plant]?.map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Motor *</label>
+              <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Equipment *</label>
               <select
                 data-testid="form-motor-select"
                 value={formData.motor}
@@ -294,6 +309,19 @@ const ConditionMonitoring = () => {
     required
   />
 </div>
+
+            <div>
+              <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Vibration (mm/s) *</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.vibration}
+                onChange={(e) => setFormData({ ...formData, vibration: e.target.value })}
+                placeholder="4.5"
+                className="w-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-[#002FA7] focus:ring-offset-2 rounded-none font-mono"
+                required
+              />
+            </div>
 
             <div>
               <label className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-2 block">Normal (A) *</label>
@@ -433,33 +461,17 @@ const ConditionMonitoring = () => {
         <div className="col-span-1 md:col-span-3">
           {/* Plant Selector */}
           <div className="border border-zinc-200 bg-white p-6 mb-4">
-            <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Select Plant</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.keys(PLANT_CONFIG).map((plant) => (
-                <button
-                  key={plant}
-                  data-testid={`plant-btn-${plant}`}
-                  onClick={() => {
-                    setSelectedPlant(plant);
-                    setSelectedMachine("");
-                  }}
-                  className={`px-4 py-3 text-sm font-medium tracking-tight transition-all duration-150 ease-out rounded-none border ${
-                    selectedPlant === plant
-                      ? 'border-[#002FA7] bg-[#002FA7] text-white'
-                      : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400'
-                  }`}
-                >
-                  Plant {plant}
-                </button>
-              ))}
+            <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Plant</h3>
+            <div className="px-4 py-3 text-sm border border-[#002FA7] bg-[#002FA7] text-white">
+              {PLANT_LABEL}
             </div>
           </div>
 
           {/* Machine Selector */}
           <div className="border border-zinc-200 bg-white p-6">
-            <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Select Machine</h3>
+            <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Select area</h3>
             <div className="space-y-2">
-              {PLANT_CONFIG[selectedPlant]?.map((machine) => (
+              {AREA_CONFIG[selectedPlant]?.map((machine) => (
                 <button
                   key={machine}
                   data-testid={`machine-btn-${machine}`}
@@ -479,7 +491,7 @@ const ConditionMonitoring = () => {
           {/* Machine Health Status */}
           {machineHealth.length > 0 && (
             <div className="border border-zinc-200 bg-white p-6 mt-4">
-              <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Machine Health Status</h3>
+              <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Area health status</h3>
               <div className="space-y-3">
                 {machineHealth.map((health) => (
                   <div key={health.machine} className="border-l-2 border-[#002FA7] pl-3" data-testid={`health-${health.machine}`}>
@@ -507,7 +519,7 @@ const ConditionMonitoring = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-medium tracking-tight text-zinc-900">
-                  {selectedMachine ? `${selectedPlant} - ${selectedMachine} Motor Current Trend` : 'Select a machine to view data'}
+                  {selectedMachine ? `${selectedMachine} — equipment current trend` : "Select an area to view data"}
                 </h3>
                 {selectedMachine && (
                   <p className="text-sm text-zinc-600 mt-1">{chartData.length} readings</p>
@@ -526,7 +538,7 @@ const ConditionMonitoring = () => {
 
             {!selectedMachine ? (
               <div className="h-96 flex items-center justify-center">
-                <p className="text-sm text-zinc-500">Select a plant and machine from the left panel</p>
+                <p className="text-sm text-zinc-500">Select an area from the left panel</p>
               </div>
             ) : loading ? (
               <div className="h-96 flex items-center justify-center">
@@ -592,7 +604,7 @@ const ConditionMonitoring = () => {
                       <thead>
                         <tr className="border-b border-zinc-200">
                           <th className="text-left px-4 py-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Time</th>
-                          <th className="text-left px-4 py-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Motor</th>
+                          <th className="text-left px-4 py-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Equipment</th>
                           <th className="text-right px-4 py-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Current (A)</th>
                           <th className="text-right px-4 py-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Normal (A)</th>
                           <th className="text-right px-4 py-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Warning (A)</th>
