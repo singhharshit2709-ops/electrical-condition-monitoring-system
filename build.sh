@@ -14,8 +14,8 @@ npm ci
 REACT_APP_BACKEND_URL= npm run build
 
 echo "==> Copying UI into backend/static"
+rm -rf ../backend/static
 mkdir -p ../backend/static
-rm -rf ../backend/static/*
 cp -r build/* ../backend/static/
 
 if [[ ! -f ../backend/static/index.html ]]; then

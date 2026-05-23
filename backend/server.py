@@ -665,10 +665,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def _dashboard_static_status() -> dict[str, Any]:
+    """Inspect backend/static for the React build (used by /health and startup)."""
+    index = STATIC_DIR / "index.html"
+    entries: list[str] = []
+    if STATIC_DIR.is_dir():
+        try:
+            entries = sorted(p.name for p in STATIC_DIR.iterdir())[:25]
+        except OSError:
+            entries = []
+    return {
+        "dashboard_ready": index.is_file(),
+        "index_html": str(index),
+        "static_dir": str(STATIC_DIR),
+        "static_dir_exists": STATIC_DIR.is_dir(),
+        "static_entry_count": len(entries),
+        "static_entries": entries,
+    }
+
+
 @app.on_event("startup")
 async def startup_event() -> None:
     app.state.config = load_config()
     init_google_sheets()
+    ui = _dashboard_static_status()
+    if ui["dashboard_ready"]:
+        logger.info("Dashboard UI ready (%s)", ui["index_html"])
+    else:
+        logger.warning(
+            "Dashboard UI not deployed — %s not found (static entries: %s). "
+            "Render build must run ./build.sh to copy frontend/build into backend/static.",
+            ui["index_html"],
+            ui["static_entries"] or "(empty)",
+        )
     logger.info("Condition monitoring server ready.")
 
 
@@ -1084,14 +1113,24 @@ async def expert_query(data: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.get("/health", tags=["System"])
-async def health_check() -> dict[str, str]:
-    index = STATIC_DIR / "index.html"
+async def health_check() -> dict[str, Any]:
+    """
+    Liveness/readiness probe.
+
+    ``dashboard_ready`` is True only when ``backend/static/index.html`` exists
+  (produced by ``./build.sh`` on deploy). If False while you see a UI in the
+  browser, you are likely on ``localhost:3000`` (dev server), not this host.
+    """
+    ui = _dashboard_static_status()
     return {
         "status": "ok",
         "version": app.version,
         "sheets_enabled": str(_sheets_enabled),
-        "dashboard_ready": str(index.is_file()),
-        "static_dir": str(STATIC_DIR),
+        "dashboard_ready": str(ui["dashboard_ready"]),
+        "static_dir": ui["static_dir"],
+        "static_dir_exists": str(ui["static_dir_exists"]),
+        "static_entry_count": ui["static_entry_count"],
+        "static_entries": ui["static_entries"],
     }
 
 
