@@ -61,6 +61,14 @@ chainlit.md
 # Deployment
 .vercel
 
+# Draft / legacy artifacts (do not commit)
+*.proposed
+*.proposed.json
+*.diff
+*_WORKING.js
+backend/backup_old/
+backend/plc_test.py
+
 # Data and databases
 agenthub/agents/youtube/db
 

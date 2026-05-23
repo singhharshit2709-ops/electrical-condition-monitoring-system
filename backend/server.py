@@ -33,7 +33,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, model_validator
 
 from config_resolve import (
@@ -1086,13 +1085,62 @@ async def expert_query(data: dict[str, Any]) -> dict[str, Any]:
 
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:
+    index = STATIC_DIR / "index.html"
     return {
         "status": "ok",
+        "version": app.version,
         "sheets_enabled": str(_sheets_enabled),
-        "static_ui": str(STATIC_DIR.exists()),
+        "dashboard_ready": str(index.is_file()),
+        "static_dir": str(STATIC_DIR),
     }
 
 
-# SPA + assets (registered after API routes so /docs and /config stay on API)
-if STATIC_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")
+# ── React dashboard (built into backend/static at deploy time) ─────────────────
+_SPA_API_PREFIXES = (
+    "api/",
+    "config/",
+    "docs",
+    "openapi.json",
+    "health",
+    "readings",
+    "condition-monitoring",
+    "machine-health",
+    "plant-health",
+    "active-alarms",
+    "acknowledge-alarm",
+)
+
+
+def _dashboard_index() -> Path:
+    return STATIC_DIR / "index.html"
+
+
+def _serve_dashboard_index() -> FileResponse | JSONResponse:
+    index = _dashboard_index()
+    if index.is_file():
+        return FileResponse(index)
+    return JSONResponse(
+        status_code=503,
+        content={
+            "service": "Electrical Condition Monitoring API",
+            "dashboard_ready": False,
+            "docs": "/docs",
+            "health": "/health",
+            "hint": "Run build.sh (or Render buildCommand) to compile frontend into backend/static",
+        },
+    )
+
+
+@app.get("/", include_in_schema=False)
+async def dashboard_root() -> FileResponse | JSONResponse:
+    return _serve_dashboard_index()
+
+
+@app.get("/{spa_path:path}", include_in_schema=False)
+async def dashboard_spa_or_asset(spa_path: str) -> FileResponse | JSONResponse:
+    if spa_path.startswith(_SPA_API_PREFIXES):
+        raise HTTPException(status_code=404, detail="Not Found")
+    asset = STATIC_DIR / spa_path
+    if asset.is_file():
+        return FileResponse(asset)
+    return _serve_dashboard_index()
