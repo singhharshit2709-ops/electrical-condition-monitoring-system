@@ -2,13 +2,21 @@ services:
   - type: web
     name: condition-monitoring-api
     runtime: python
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: |
+      pip install -r backend/requirements.txt &&
+      cd frontend &&
+      npm ci &&
+      REACT_APP_BACKEND_URL= npm run build &&
+      mkdir -p ../backend/static &&
+      cp -r build/* ../backend/static/
     startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GOOGLE_SHEETS_ENABLED
         value: "true"
       - key: GOOGLE_SHEET_ID
         sync: false
+      - key: GOOGLE_SHEET_WORKSHEET
+        value: "Readings"
       - key: GOOGLE_SERVICE_ACCOUNT_JSON
         sync: false
       - key: CLOUDINARY_URL

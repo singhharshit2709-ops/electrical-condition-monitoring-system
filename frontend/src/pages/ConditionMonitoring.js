@@ -2,29 +2,19 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Download, Plus, Warning as WarningIcon, XCircle, Camera, Image as ImageIcon } from "@phosphor-icons/react";
+import {
+  PLANT_ID,
+  PLANT_LABEL,
+  configMachineUrl,
+  fetchGtAreas,
+  GT_AREAS_FALLBACK,
+} from "@/lib/gtConfig";
+import { getApiBase } from "@/lib/api";
 
-const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
-const API = BACKEND_URL;
-
-const PLANT_ID = "GT";
-const PLANT_LABEL = "Neutral Glass — G Tank Electrical Condition Monitoring";
-
-const AREA_CONFIG = {
-  GT: [
-    "G1",
-    "G2",
-    "G3",
-    "Furnace Cooling Blower",
-    "Mold Cooling Blower",
-    "Combustion Blower",
-    "Block Air Fan",
-    "Injector Blower",
-    "Electrode Cooling Blower",
-    "Electrode Water Pump",
-  ],
-};
+const API = getApiBase();
 
 const ConditionMonitoring = () => {
+  const [areaList, setAreaList] = useState(GT_AREAS_FALLBACK);
   const [selectedPlant, setSelectedPlant] = useState(PLANT_ID);
   const [selectedMachine, setSelectedMachine] = useState("G1");
   const [chartData, setChartData] = useState([]);
@@ -51,6 +41,14 @@ const ConditionMonitoring = () => {
   const [photoPreview, setPhotoPreview] = useState(null);
 
   useEffect(() => {
+    fetchGtAreas(API)
+      .then((areas) => {
+        if (areas.length > 0) setAreaList(areas);
+      })
+      .catch((e) => console.error("Failed to load areas from API:", e));
+  }, []);
+
+  useEffect(() => {
     if (selectedPlant && selectedMachine) {
       fetchMonitoringData(selectedPlant, selectedMachine);
       fetchMachineHealth(selectedPlant);
@@ -65,7 +63,7 @@ const ConditionMonitoring = () => {
   const fetchMonitoringData = async (plant, machine) => {
     setLoading(false);
     try {
-      const res = await axios.get(`${BACKEND_URL}/config/${plant}/${machine}`);
+      const res = await axios.get(configMachineUrl(API, plant, machine));
       setMotorOptions(Object.keys(res.data.motors || {}));
       const transformed = Object.entries(res.data.motors).map(
   ([motorName, thresholds]) => ({
@@ -254,7 +252,7 @@ const ConditionMonitoring = () => {
                 required
               >
                 <option value="">Select</option>
-                {AREA_CONFIG[formData.plant]?.map(m => (
+                {areaList.map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
@@ -471,7 +469,7 @@ const ConditionMonitoring = () => {
           <div className="border border-zinc-200 bg-white p-6">
             <h3 className="text-lg font-medium tracking-tight text-zinc-900 mb-4">Select area</h3>
             <div className="space-y-2">
-              {AREA_CONFIG[selectedPlant]?.map((machine) => (
+              {areaList.map((machine) => (
                 <button
                   key={machine}
                   data-testid={`machine-btn-${machine}`}

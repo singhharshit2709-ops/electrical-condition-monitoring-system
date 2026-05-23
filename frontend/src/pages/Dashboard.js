@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { GearSix, Warning } from "@phosphor-icons/react";
+import { PLANT_ID, PLANT_LABEL } from "@/lib/gtConfig";
+import { getApiBase } from "@/lib/api";
 
-const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
-const API = BACKEND_URL;
-const PLANT_ID = "GT";
-const PLANT_LABEL = "Neutral Glass — G Tank Electrical Condition Monitoring";
+const API = getApiBase();
 
 const Dashboard = () => {
   const [areaHealth, setAreaHealth] = useState([]);

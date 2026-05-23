@@ -1,29 +1,19 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Camera, XCircle, Check } from "@phosphor-icons/react";
+import {
+  PLANT_ID,
+  PLANT_LABEL,
+  configMachineUrl,
+  fetchGtAreas,
+  GT_AREAS_FALLBACK,
+} from "@/lib/gtConfig";
+import { getApiBase } from "@/lib/api";
 
-const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
-const API = BACKEND_URL;
-
-const PLANT_ID = "GT";
-const PLANT_LABEL = "Neutral Glass — G Tank Electrical Condition Monitoring";
-
-const AREA_CONFIG = {
-  GT: [
-    "G1",
-    "G2",
-    "G3",
-    "Furnace Cooling Blower",
-    "Mold Cooling Blower",
-    "Combustion Blower",
-    "Block Air Fan",
-    "Injector Blower",
-    "Electrode Cooling Blower",
-    "Electrode Water Pump",
-  ],
-};
+const API = getApiBase();
 
 const BulkEntry = () => {
+  const [areaList, setAreaList] = useState(GT_AREAS_FALLBACK);
   const [selectedPlant, setSelectedPlant] = useState(PLANT_ID);
   const [selectedMachine, setSelectedMachine] = useState("");
   const [machineConfig, setMachineConfig] = useState(null);
@@ -32,17 +22,33 @@ const BulkEntry = () => {
   const [photoBase64, setPhotoBase64] = useState(null);
   const [technician, setTechnician] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(null);
+  const [configLoading, setConfigLoading] = useState(false);
+
+  useEffect(() => {
+    fetchGtAreas(API)
+      .then((areas) => {
+        if (areas.length > 0) setAreaList(areas);
+      })
+      .catch((e) => console.error("Failed to load areas from API:", e));
+  }, []);
 
   useEffect(() => {
     if (selectedPlant && selectedMachine) {
+      setMachineConfig(null);
+      setReadings({});
+      setSubmitError(null);
+      setSubmitSuccess(null);
       fetchMachineConfig();
     }
   }, [selectedPlant, selectedMachine]);
 
   const fetchMachineConfig = async () => {
+    setConfigLoading(true);
     try {
       const response = await axios.get(
-        `${API}/config/${selectedPlant}/${selectedMachine}`
+        configMachineUrl(API, selectedPlant, selectedMachine)
       );
       const motors = Array.isArray(response.data.motors)
         ? response.data.motors
@@ -69,6 +75,13 @@ const BulkEntry = () => {
       setReadings(initialReadings);
     } catch (e) {
       console.error("Error fetching config:", e);
+      setSubmitError(
+        "Could not load area configuration: " +
+          (e.response?.data?.detail || e.message)
+      );
+      setMachineConfig(null);
+    } finally {
+      setConfigLoading(false);
     }
   };
 
@@ -94,34 +107,81 @@ const BulkEntry = () => {
     }));
   };
 
+  const formatApiError = (error) => {
+    const detail = error.response?.data?.detail;
+    if (!detail) return error.message;
+    if (typeof detail === "string") return detail;
+    const parts = [detail.message || "Submission failed"];
+    if (detail.errors?.length) parts.push(detail.errors.join("; "));
+    if (detail.inserted_count != null) {
+      parts.push(`Stored: ${detail.inserted_count}, skipped: ${detail.skipped_count ?? "?"}`);
+    }
+    return parts.join(" — ");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!machineConfig || configLoading) return;
+
+    const expectedMotors = machineConfig.motors || [];
+    const readingKeys = Object.keys(readings);
+    if (readingKeys.length !== expectedMotors.length) {
+      setSubmitError(
+        `Form is out of sync (${readingKeys.length} rows vs ${expectedMotors.length} equipment). Reselect the area and try again.`
+      );
+      return;
+    }
+    for (const motor of expectedMotors) {
+      if (!readings[motor]) {
+        setSubmitError(`Missing readings for equipment: ${motor}`);
+        return;
+      }
+    }
+
     setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
 
     try {
       const bulkData = {
         plant: selectedPlant,
         machine: selectedMachine,
-        readings: Object.entries(readings).map(([motor, values]) => ({
-          motor,
-          current: values.current === "" ? null : Number(values.current),
-          temperature: values.temperature === "" ? null : Number(values.temperature),
-          vibration: values.vibration === "" ? null : Number(values.vibration),
-          normal_current: values.normal_current === "" ? null : Number(values.normal_current),
-          warning_current: values.warning_current === "" ? null : Number(values.warning_current),
-          normal_temperature: values.normal_temperature === "" ? null : Number(values.normal_temperature),
-          warning_temperature: values.warning_temperature === "" ? null : Number(values.warning_temperature),
-          normal_vibration: values.normal_vibration === "" ? null : Number(values.normal_vibration),
-          warning_vibration: values.warning_vibration === "" ? null : Number(values.warning_vibration),
-        })),
+        readings: expectedMotors.map((motor) => {
+          const values = readings[motor];
+          return {
+            motor,
+            current: values.current === "" ? null : Number(values.current),
+            temperature: values.temperature === "" ? null : Number(values.temperature),
+            vibration: values.vibration === "" ? null : Number(values.vibration),
+            normal_current: values.normal_current === "" ? null : Number(values.normal_current),
+            warning_current: values.warning_current === "" ? null : Number(values.warning_current),
+            normal_temperature: values.normal_temperature === "" ? null : Number(values.normal_temperature),
+            warning_temperature: values.warning_temperature === "" ? null : Number(values.warning_temperature),
+            normal_vibration: values.normal_vibration === "" ? null : Number(values.normal_vibration),
+            warning_vibration: values.warning_vibration === "" ? null : Number(values.warning_vibration),
+          };
+        }),
         technician,
         photo_base64: photoBase64,
         entry_source: "Field",
       };
 
-      await axios.post(`${API}/condition-monitoring/bulk`, bulkData);
+      const res = await axios.post(`${API}/condition-monitoring/bulk`, bulkData);
+      const inserted = res.data?.inserted_count ?? 0;
+      const expected = res.data?.expected_count ?? expectedMotors.length;
+      const skipped = res.data?.skipped_count ?? 0;
 
-      alert("All readings submitted successfully.");
+      if (inserted === 0 || inserted < expected || skipped > 0) {
+        const errMsg =
+          res.data?.errors?.join("; ") ||
+          `Only ${inserted} of ${expected} readings were stored.`;
+        setSubmitError(errMsg);
+        return;
+      }
+
+      setSubmitSuccess(
+        `Saved ${inserted} reading(s) for ${res.data?.machine || selectedMachine}.`
+      );
 
       setSelectedMachine("");
       setMachineConfig(null);
@@ -131,7 +191,7 @@ const BulkEntry = () => {
       setTechnician("");
     } catch (error) {
       console.error("Bulk submit error:", error);
-      alert("Failed to submit readings: " + (error.response?.data?.detail || error.message));
+      setSubmitError(formatApiError(error));
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +239,7 @@ const BulkEntry = () => {
               className="w-full border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-[#002FA7] focus:ring-offset-2 rounded-none"
             >
               <option value="">Select area</option>
-              {AREA_CONFIG[selectedPlant]?.map((m) => (
+              {areaList.map((m) => (
                 <option key={m} value={m}>
                   {m}
                 </option>
@@ -188,6 +248,17 @@ const BulkEntry = () => {
           </div>
         </div>
       </div>
+
+      {submitError && (
+        <div className="border-2 border-[#E11D48] bg-red-50 text-red-800 px-4 py-3 mb-6 text-sm">
+          {submitError}
+        </div>
+      )}
+      {submitSuccess && (
+        <div className="border-2 border-[#16A34A] bg-green-50 text-green-800 px-4 py-3 mb-6 text-sm">
+          {submitSuccess}
+        </div>
+      )}
 
       {machineConfig && (
         <form onSubmit={handleSubmit}>
@@ -317,14 +388,14 @@ const BulkEntry = () => {
             <button type="button" onClick={() => { setSelectedMachine(""); setMachineConfig(null); }} className="border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 px-6 py-3 text-sm font-medium tracking-tight transition-all duration-150 ease-out rounded-none">
               Cancel
             </button>
-            <button type="submit" disabled={submitting} className="bg-[#16A34A] text-white hover:bg-[#16A34A]/90 px-8 py-3 text-sm font-medium tracking-tight transition-all duration-150 ease-out rounded-none disabled:opacity-50 flex items-center space-x-2">
+            <button type="submit" disabled={submitting || configLoading} className="bg-[#16A34A] text-white hover:bg-[#16A34A]/90 px-8 py-3 text-sm font-medium tracking-tight transition-all duration-150 ease-out rounded-none disabled:opacity-50 flex items-center space-x-2">
               {submitting ? <span>Submitting...</span> : <><Check size={18} weight="bold" /><span>Submit all readings ({machineConfig.motors.length})</span></>}
             </button>
           </div>
         </form>
       )}
 
-      {!machineConfig && selectedMachine && (
+      {!machineConfig && selectedMachine && configLoading && (
         <div className="border border-zinc-200 bg-white p-12 text-center">
           <p className="text-zinc-500">Loading area configuration...</p>
         </div>

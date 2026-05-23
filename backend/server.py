@@ -32,7 +32,15 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, model_validator
+
+from config_resolve import (
+    get_motor_thresholds_resolved,
+    resolve_machine_id,
+    resolve_motor_name,
+)
 
 # Load environment variables early
 load_dotenv()
@@ -59,6 +67,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ─────────────────────────────────────────────
 CONFIG_PATH = Path(__file__).parent / "machine_config.json"
+STATIC_DIR = Path(__file__).parent / "static"
 
 STATUS_NORMAL  = "Normal"
 STATUS_WARNING = "Warning"
@@ -104,21 +113,11 @@ def get_motor_thresholds(
     machine_id: str,
     motor_name: str,
 ) -> dict[str, float]:
-    """
-    Return the threshold dict for a specific motor.
-    Raises HTTPException 404 if plant / machine / motor is not found.
-    """
-    try:
-        thresholds: dict[str, float] = (
-            config["plants"][plant_id]["machines"][machine_id]["motors"][motor_name]
-        )
-        return thresholds
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Configuration not found: {exc} "
-                   f"(plant={plant_id}, machine={machine_id}, motor={motor_name})",
-        ) from exc
+    """Return threshold dict for a motor (canonical names resolved)."""
+    _, _, thresholds = get_motor_thresholds_resolved(
+        config, plant_id, machine_id, motor_name
+    )
+    return thresholds
 
 
 def get_machine_parameters(
@@ -126,9 +125,10 @@ def get_machine_parameters(
     plant_id: str,
     machine_id: str,
 ) -> list[str]:
-    """Return the active parameter list for a machine (e.g. ['current', 'temperature', 'vibration'])."""
+    """Return the active parameter list for a machine."""
+    canonical_machine = resolve_machine_id(config, plant_id, machine_id)
     try:
-        return config["plants"][plant_id]["machines"][machine_id]["parameters"]
+        return config["plants"][plant_id]["machines"][canonical_machine]["parameters"]
     except KeyError as exc:
         raise HTTPException(
             status_code=404,
@@ -351,15 +351,16 @@ def init_google_sheets() -> None:
         spreadsheet = client.open_by_key(sheet_id)
         logger.info("Spreadsheet opened successfully")
 
+        worksheet_title = os.environ.get("GOOGLE_SHEET_WORKSHEET", "Readings").strip() or "Readings"
         # Get or create the Readings worksheet
         try:
-            worksheet = spreadsheet.worksheet("Readings")
+            worksheet = spreadsheet.worksheet(worksheet_title)
         except gspread.exceptions.WorksheetNotFound:
             worksheet = spreadsheet.add_worksheet(
-                title="Readings", rows=10000, cols=len(_SHEETS_HEADERS)
+                title=worksheet_title, rows=10000, cols=len(_SHEETS_HEADERS)
             )
             worksheet.append_row(_SHEETS_HEADERS)
-            logger.info("Google Sheets — created 'Readings' worksheet with headers")
+            logger.info("Google Sheets — created %r worksheet with headers", worksheet_title)
 
         # Ensure headers exist on row 1 if the sheet was created externally
         existing_headers = worksheet.row_values(1)
@@ -369,8 +370,12 @@ def init_google_sheets() -> None:
 
         _sheets_worksheet = worksheet
         _sheets_enabled   = True
-        logger.info("Google Sheets ready (sheet_id=%s, worksheet='Readings', credential_source=%s)",
-                    sheet_id, credential_source)
+        logger.info(
+            "Google Sheets ready (sheet_id=%s, worksheet=%r, credential_source=%s)",
+            sheet_id,
+            worksheet_title,
+            credential_source,
+        )
 
     except json.JSONDecodeError as exc:
         logger.error("Google Sheets disabled — JSON validation error: %s", exc)
@@ -413,7 +418,14 @@ def save_bulk_readings_to_sheets(docs: list[dict[str, Any]]) -> None:
     try:
         rows = [_row_from_doc(doc) for doc in docs]
         _sheets_worksheet.append_rows(rows, value_input_option="RAW")
-        logger.info("Saved %d reading(s) to Google Sheets (bulk)", len(rows))
+        motors = ", ".join(f"{d.get('motor')}" for d in docs)
+        logger.info(
+            "Saved %d reading(s) to Google Sheets (bulk, plant=%s, machine=%s, motors=[%s])",
+            len(rows),
+            docs[0].get("plant") if docs else "",
+            docs[0].get("machine") if docs else "",
+            motors,
+        )
     except gspread.exceptions.APIError as exc:
         logger.error("Google Sheets bulk write failed (APIError): %s", exc)
     except Exception as exc:
@@ -494,8 +506,9 @@ async def process_and_store_readings(
     payload: ReadingsBatchRequest,
     source_readings: list[dict[str, Any]] | None = None,
     bulk_entry: bool = False,
+    strict: bool = False,
 ) -> ReadingsBatchResponse:
-    response = await submit_readings(payload)
+    response = await submit_readings(payload, strict=strict)
     source_by_motor = {
         item.get("motor"): item
         for item in (source_readings or [])
@@ -611,6 +624,8 @@ class ReadingsBatchResponse(BaseModel):
         description="Count of motors per status level"
     )
     results:       list[MotorResult]
+    skipped_count: int = Field(0, description="Motors that failed config lookup")
+    errors:        list[str] = Field(default_factory=list, description="Per-motor error messages")
 
 
 class MotorConfigResponse(BaseModel):
@@ -670,16 +685,11 @@ async def startup_event() -> None:
 )
 async def get_machine_config(plant_id: str, machine_id: str) -> MachineConfigResponse:
     config: dict[str, Any] = app.state.config
-    try:
-        machine = config["plants"][plant_id]["machines"][machine_id]
-    except KeyError:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Plant '{plant_id}' / Machine '{machine_id}' not found in config.",
-        )
+    canonical_machine = resolve_machine_id(config, plant_id, machine_id)
+    machine = config["plants"][plant_id]["machines"][canonical_machine]
     return MachineConfigResponse(
         plant_id=plant_id,
-        machine_id=machine_id,
+        machine_id=canonical_machine,
         parameters=machine["parameters"],
         motors=machine["motors"],
     )
@@ -738,27 +748,65 @@ async def list_plants() -> dict[str, Any]:
     tags=["Readings"],
     summary="Submit motor readings and receive status classification",
 )
-async def submit_readings(payload: ReadingsBatchRequest) -> ReadingsBatchResponse:
+async def submit_readings(
+    payload: ReadingsBatchRequest,
+    *,
+    strict: bool = False,
+) -> ReadingsBatchResponse:
     config: dict[str, Any] = app.state.config
-    active_params = get_machine_parameters(config, payload.plant_id, payload.machine_id)
+    canonical_machine = resolve_machine_id(
+        config, payload.plant_id, payload.machine_id
+    )
+    active_params = get_machine_parameters(
+        config, payload.plant_id, canonical_machine
+    )
 
     results: list[MotorResult] = []
     errors: list[str] = []
 
     for reading in payload.readings:
         try:
-            thresholds = get_motor_thresholds(
-                config, payload.plant_id, payload.machine_id, reading.motor
+            _, canonical_motor, thresholds = get_motor_thresholds_resolved(
+                config,
+                payload.plant_id,
+                canonical_machine,
+                reading.motor,
             )
+            resolved = reading.model_copy(update={"motor": canonical_motor})
         except HTTPException as exc:
-            errors.append(str(exc.detail))
+            detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+            errors.append(detail)
             continue
 
-        result = classify_motor_reading(reading, thresholds, active_params)
+        result = classify_motor_reading(resolved, thresholds, active_params)
         results.append(result)
 
     if errors:
         logger.warning("Skipped %d unrecognised motors: %s", len(errors), errors)
+        if strict:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": (
+                        f"Could not process {len(errors)} of {len(payload.readings)} "
+                        f"equipment reading(s) for area {canonical_machine!r}"
+                    ),
+                    "skipped_count": len(errors),
+                    "inserted_count": len(results),
+                    "errors": errors,
+                },
+            )
+
+    if strict and len(results) != len(payload.readings):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Not all equipment readings were processed",
+                "skipped_count": len(payload.readings) - len(results),
+                "inserted_count": len(results),
+                "errors": errors,
+            },
+        )
 
     results.sort(key=severity_order)
 
@@ -768,10 +816,12 @@ async def submit_readings(payload: ReadingsBatchRequest) -> ReadingsBatchRespons
 
     return ReadingsBatchResponse(
         plant_id=payload.plant_id,
-        machine_id=payload.machine_id,
+        machine_id=canonical_machine,
         processed_at=datetime.now(timezone.utc).isoformat(),
         summary=summary,
         results=results,
+        skipped_count=len(errors),
+        errors=errors,
     )
 
 
@@ -801,25 +851,57 @@ async def add_bulk_condition_data(data: dict[str, Any]) -> dict[str, Any]:
     if not plant_id or not machine_id or not readings:
         raise HTTPException(status_code=422, detail="plant, machine and readings are required")
 
-    payload = ReadingsBatchRequest(
-        plant_id=plant_id,
-        machine_id=machine_id,
-        readings=[
+    config: dict[str, Any] = app.state.config
+    canonical_machine = resolve_machine_id(config, plant_id, machine_id)
+
+    motor_readings: list[MotorReading] = []
+    for item in readings:
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=422, detail="Each reading must be an object")
+        motor_name = item.get("motor") or item.get("equipment")
+        if not motor_name:
+            raise HTTPException(
+                status_code=422,
+                detail="Each reading requires a motor (equipment) name",
+            )
+        motor_readings.append(
             MotorReading(
-                motor=item.get("motor"),
+                motor=str(motor_name).strip(),
                 current=_optional_measurement(item.get("current")),
                 temperature=_optional_measurement(item.get("temperature")),
                 vibration=_vibration_from_payload(item),
                 timestamp=item.get("timestamp"),
             )
-            for item in readings
-        ],
+        )
+
+    payload = ReadingsBatchRequest(
+        plant_id=plant_id,
+        machine_id=canonical_machine,
+        readings=motor_readings,
     )
-    response = await process_and_store_readings(payload, readings, bulk_entry=True)
+    response = await process_and_store_readings(
+        payload, readings, bulk_entry=True, strict=True
+    )
+    inserted = len(response.results)
+    if inserted == 0:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "No readings were stored",
+                "inserted_count": 0,
+                "skipped_count": response.skipped_count,
+                "errors": response.errors,
+            },
+        )
     return {
         "message": "Bulk readings submitted successfully",
-        "inserted_count": len(response.results),
+        "plant": payload.plant_id,
+        "machine": response.machine_id,
+        "inserted_count": inserted,
+        "skipped_count": response.skipped_count,
+        "expected_count": len(motor_readings),
         "summary": response.summary,
+        "errors": response.errors,
         "results": [result.model_dump() for result in response.results],
     }
 
@@ -845,13 +927,24 @@ async def add_condition_data(data: dict[str, Any]) -> dict[str, Any]:
             )
         ],
     )
-    response = await process_and_store_readings(payload, [data], bulk_entry=False)
-    result = response.results[0] if response.results else None
+    response = await process_and_store_readings(
+        payload, [data], bulk_entry=False, strict=True
+    )
+    if not response.results:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Reading was not stored",
+                "errors": response.errors,
+            },
+        )
+    result = response.results[0]
     return {
         "message": "Reading submitted successfully",
         "bulk_entry_flag": False,
-        "status": result.overall_status if result else None,
-        "result": result.model_dump() if result else None,
+        "inserted_count": 1,
+        "status": result.overall_status,
+        "result": result.model_dump(),
     }
 
 
@@ -914,19 +1007,20 @@ async def get_machine_health(plant_id: str) -> list[dict[str, Any]]:
     for machine_id, machine_data in machines.items():
         # Use helper function to get counts from latest readings only
         counts = get_latest_health_counts(plant_id=plant_id, machine_id=machine_id)
-        
-        # Determine worst status
+        configured_total = len(machine_data.get("motors", {}))
+        monitored_total = counts["ok"] + counts["warning"] + counts["alarm"]
+
+        # Determine worst status from readings; unmonitored equipment defaults to Normal
         statuses = []
         if counts["alarm"] > 0:
             statuses.append(STATUS_ALARM)
         if counts["warning"] > 0:
             statuses.append(STATUS_WARNING)
-        if counts["ok"] > 0:
+        if counts["ok"] > 0 or monitored_total < configured_total:
             statuses.append(STATUS_NORMAL)
-        
+
         worst_status = max(statuses, key=status_rank) if statuses else STATUS_NORMAL
-        total = counts["ok"] + counts["warning"] + counts["alarm"]
-        
+
         result.append(
             {
                 "plant": plant_id,
@@ -935,7 +1029,9 @@ async def get_machine_health(plant_id: str) -> list[dict[str, Any]]:
                 "ok": counts["ok"],
                 "warning": counts["warning"],
                 "alarm": counts["alarm"],
-                "total": total,
+                "total": configured_total,
+                "monitored": monitored_total,
+                "unmonitored": max(0, configured_total - monitored_total),
                 "health_percent": health_percent_for_status(worst_status),
             }
         )
@@ -986,3 +1082,17 @@ async def get_plant_health() -> list[dict[str, Any]]:
 async def expert_query(data: dict[str, Any]) -> dict[str, Any]:
     query = data.get("query", "")
     return {"status": "success", "query_received": query, "response": "Query tracking placeholder."}
+
+
+@app.get("/health", tags=["System"])
+async def health_check() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "sheets_enabled": str(_sheets_enabled),
+        "static_ui": str(STATIC_DIR.exists()),
+    }
+
+
+# SPA + assets (registered after API routes so /docs and /config stay on API)
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")
