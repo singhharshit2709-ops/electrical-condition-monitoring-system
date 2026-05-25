@@ -241,6 +241,92 @@ def _row_from_doc(doc: dict[str, Any]) -> list:
     return [str(doc.get(col, "")) for col in _SHEETS_HEADERS]
 
 
+_NUMERIC_SHEET_COLS = frozenset(
+    {
+        "current",
+        "temperature",
+        "vibration",
+        "normal_current",
+        "warning_current",
+        "normal_temperature",
+        "warning_temperature",
+        "normal_vibration",
+        "warning_vibration",
+    }
+)
+_BOOL_SHEET_COLS = frozenset({"has_photo", "bulk_entry"})
+
+
+def _parse_sheet_cell(column: str, raw: str) -> Any:
+    """Convert a worksheet cell string back into a cache document field."""
+    if raw is None:
+        raw = ""
+    text = str(raw).strip()
+    if text == "":
+        return None
+    if column in _BOOL_SHEET_COLS:
+        return text.lower() in ("true", "1", "yes")
+    if column in _NUMERIC_SHEET_COLS:
+        try:
+            return float(text)
+        except ValueError:
+            return text
+    return text
+
+
+def _doc_from_row(row: list[str]) -> dict[str, Any] | None:
+    """Convert a Readings worksheet row into a readings_cache document."""
+    if not row or all(str(cell).strip() == "" for cell in row):
+        return None
+    padded = list(row) + [""] * max(0, len(_SHEETS_HEADERS) - len(row))
+    doc: dict[str, Any] = {
+        col: _parse_sheet_cell(col, padded[idx])
+        for idx, col in enumerate(_SHEETS_HEADERS)
+    }
+    if not doc.get("plant") or not doc.get("motor"):
+        return None
+    return doc
+
+
+def hydrate_readings_cache_from_sheets(max_rows: int = 1000) -> None:
+    """
+    Load the latest worksheet rows into readings_cache on startup.
+    Preserves chronological order (oldest → newest) for /recent and health helpers.
+    """
+    global readings_cache
+
+    if not _sheets_enabled or _sheets_worksheet is None:
+        logger.info("Cache hydration skipped — Google Sheets not enabled")
+        return
+
+    try:
+        logger.info("Cache hydration starting (max_rows=%d)...", max_rows)
+        all_values = _sheets_worksheet.get_all_values()
+        if len(all_values) <= 1:
+            logger.info("Cache hydration succeeded — 0 record(s) loaded (sheet empty)")
+            readings_cache = []
+            return
+
+        data_rows = all_values[1:][-max_rows:]
+        loaded: list[dict[str, Any]] = []
+        skipped = 0
+        for row in data_rows:
+            doc = _doc_from_row(row)
+            if doc:
+                loaded.append(doc)
+            else:
+                skipped += 1
+
+        readings_cache = loaded
+        logger.info(
+            "Cache hydration succeeded — loaded %d record(s) into readings_cache (%d row(s) skipped)",
+            len(loaded),
+            skipped,
+        )
+    except Exception as exc:
+        logger.error("Cache hydration failed — readings_cache unchanged: %s", exc)
+
+
 def init_google_sheets() -> None:
     """
     Initialise the Google Sheets connection at startup.
@@ -688,6 +774,7 @@ def _dashboard_static_status() -> dict[str, Any]:
 async def startup_event() -> None:
     app.state.config = load_config()
     init_google_sheets()
+    hydrate_readings_cache_from_sheets(max_rows=1000)
     ui = _dashboard_static_status()
     if ui["dashboard_ready"]:
         logger.info("Dashboard UI ready (%s)", ui["index_html"])
