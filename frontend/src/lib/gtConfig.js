@@ -24,9 +24,9 @@ export async function fetchGtAreas(apiBase) {
 
 /** Fallback if API unavailable — mirrors machine_config.json GT machines (v3.0.0) */
 export const GT_AREAS_FALLBACK = [
-  "G1",
-  "G2",
-  "G3",
+  "G1 Lehr",
+  "G2 Lehr",
+  "G3 Lehr",
   "Furnace Cooling Blower",
   "Mold Cooling Blower",
   "Combustion Blower",

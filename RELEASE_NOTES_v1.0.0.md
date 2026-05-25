@@ -21,7 +21,7 @@ First production release of the G Tank ECM system: hosted dashboard on Render, F
 
 ## Equipment
 
-10 areas, 42 motors: G1, G2, G3, Furnace Cooling Blower, Mold Cooling Blower, Combustion Blower, Block Air Fan, Injector Blower, Electrode Cooling Blower, Electrode Water Pump.
+10 areas, 42 motors: G1 Lehr, G2 Lehr, G3 Lehr, Furnace Cooling Blower, Mold Cooling Blower, Combustion Blower, Block Air Fan, Injector Blower, Electrode Cooling Blower, Electrode Water Pump.
 
 ## Deployment
 

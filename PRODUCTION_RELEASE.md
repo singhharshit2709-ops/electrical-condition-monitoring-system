@@ -52,9 +52,9 @@
 
 | Area | Equipment count | Motors |
 |------|-----------------|--------|
-| G1 | 8 | Lehr Fan 1–6, Lehr Belt, Cleaning Conveyor |
-| G2 | 8 | same as G1 |
-| G3 | 8 | same as G1 |
+| G1 Lehr | 8 | Lehr Fan 1–6, Lehr Belt, Cleaning Conveyor |
+| G2 Lehr | 8 | same as G1 Lehr |
+| G3 Lehr | 8 | same as G1 Lehr |
 | Furnace Cooling Blower | 2 | Drive, Star Delta |
 | Mold Cooling Blower | 3 | MCB1, MCB2, MCB3 |
 | Combustion Blower | 3 | CB1, CB2, CB3 |

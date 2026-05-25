@@ -594,7 +594,7 @@ class MotorReading(BaseModel):
 class ReadingsBatchRequest(BaseModel):
     """Batch of motor readings for a specific machine."""
     plant_id:   str                  = Field(..., examples=["GT"])
-    machine_id: str                  = Field(..., examples=["G1"])
+    machine_id: str                  = Field(..., examples=["G1 Lehr"])
     readings:   list[MotorReading]   = Field(..., min_length=1)
 
 

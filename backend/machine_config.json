@@ -11,7 +11,7 @@
       "name": "G Tank",
       "site": "Neutral Glass",
       "machines": {
-        "G1": {
+        "G1 Lehr": {
           "description": "Lehr Area G1",
           "parameters": [
             "current",
@@ -85,7 +85,7 @@
             }
           }
         },
-        "G2": {
+        "G2 Lehr": {
           "description": "Lehr Area G2",
           "parameters": [
             "current",
@@ -159,7 +159,7 @@
             }
           }
         },
-        "G3": {
+        "G3 Lehr": {
           "description": "Lehr Area G3",
           "parameters": [
             "current",

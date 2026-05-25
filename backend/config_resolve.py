@@ -23,6 +23,12 @@ MOTOR_ALIASES: dict[str, str] = {
 
 # Alternate area labels → canonical machine id
 MACHINE_ALIASES: dict[str, str] = {
+    "g1": "G1 Lehr",
+    "g1 lehr": "G1 Lehr",
+    "g2": "G2 Lehr",
+    "g2 lehr": "G2 Lehr",
+    "g3": "G3 Lehr",
+    "g3 lehr": "G3 Lehr",
     "furnace cooling blower": "Furnace Cooling Blower",
     "furnace blower": "Furnace Cooling Blower",
     "mold cooling blower": "Mold Cooling Blower",

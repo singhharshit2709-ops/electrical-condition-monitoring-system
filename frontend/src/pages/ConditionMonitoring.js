@@ -16,7 +16,7 @@ const API = getApiBase();
 const ConditionMonitoring = () => {
   const [areaList, setAreaList] = useState(GT_AREAS_FALLBACK);
   const [selectedPlant, setSelectedPlant] = useState(PLANT_ID);
-  const [selectedMachine, setSelectedMachine] = useState("G1");
+  const [selectedMachine, setSelectedMachine] = useState("G1 Lehr");
   const [chartData, setChartData] = useState([]);
   const [machineHealth, setMachineHealth] = useState([]);
   const [activeAlarms, setActiveAlarms] = useState([]);
@@ -26,7 +26,7 @@ const ConditionMonitoring = () => {
   
   const [formData, setFormData] = useState({
     plant: PLANT_ID,
-    machine: "G1",
+    machine: "G1 Lehr",
     motor: "",
     current: "",
     temperature: "",
