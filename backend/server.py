@@ -73,7 +73,11 @@ STATUS_WARNING = "Warning"
 STATUS_ALARM   = "Alarm"
 
 readings_cache: list[dict[str, Any]] = []
+# Latest reading per (plant, machine, motor) — used for health + active alarms (Hybrid B).
+_motor_latest: dict[tuple[str, str, str], dict[str, Any]] = {}
 acknowledged_alarm_ids: set[str] = set()
+
+_RECENT_HISTORY_TAIL = 1000
 
 # ── Google Sheets runtime state ───────────────────────────────────────────────
 _sheets_enabled: bool = False          # flipped to True only after successful init
@@ -288,43 +292,70 @@ def _doc_from_row(row: list[str]) -> dict[str, Any] | None:
     return doc
 
 
-def hydrate_readings_cache_from_sheets(max_rows: int = 1000) -> None:
+def _motor_key(doc: dict[str, Any]) -> tuple[str, str, str]:
+    return (str(doc["plant"]), str(doc["machine"]), str(doc["motor"]))
+
+
+def _set_motor_latest(doc: dict[str, Any]) -> None:
+    """Record the newest known reading for a motor (live submit or sheet row)."""
+    _motor_latest[_motor_key(doc)] = doc
+
+
+def hydrate_readings_cache_from_sheets(recent_tail: int = _RECENT_HISTORY_TAIL) -> None:
     """
-    Load the latest worksheet rows into readings_cache on startup.
-    Preserves chronological order (oldest → newest) for /recent and health helpers.
+    Hybrid B+A hydration from Google Sheets on startup.
+
+    B — Build _motor_latest from the full Readings tab (latest row per motor wins).
+    A — Load readings_cache with the last ``recent_tail`` chronological rows for /recent.
     """
-    global readings_cache
+    global readings_cache, _motor_latest
 
     if not _sheets_enabled or _sheets_worksheet is None:
         logger.info("Cache hydration skipped — Google Sheets not enabled")
         return
 
     try:
-        logger.info("Cache hydration starting (max_rows=%d)...", max_rows)
+        logger.info(
+            "Cache hydration starting (hybrid B+A, recent_tail=%d)...",
+            recent_tail,
+        )
         all_values = _sheets_worksheet.get_all_values()
         if len(all_values) <= 1:
-            logger.info("Cache hydration succeeded — 0 record(s) loaded (sheet empty)")
             readings_cache = []
+            _motor_latest = {}
+            logger.info(
+                "Cache hydration succeeded — 0 sheet row(s); recent=0, motor_latest=0"
+            )
             return
 
-        data_rows = all_values[1:][-max_rows:]
-        loaded: list[dict[str, Any]] = []
+        all_docs: list[dict[str, Any]] = []
         skipped = 0
-        for row in data_rows:
+        for row in all_values[1:]:
             doc = _doc_from_row(row)
             if doc:
-                loaded.append(doc)
+                all_docs.append(doc)
             else:
                 skipped += 1
 
-        readings_cache = loaded
+        # B: latest per motor from entire sheet (chronological — last row wins)
+        motor_latest: dict[tuple[str, str, str], dict[str, Any]] = {}
+        for doc in all_docs:
+            motor_latest[_motor_key(doc)] = doc
+
+        # A: chronological tail for Recent Readings API
+        readings_cache = all_docs[-recent_tail:]
+        _motor_latest = motor_latest
+
         logger.info(
-            "Cache hydration succeeded — loaded %d record(s) into readings_cache (%d row(s) skipped)",
-            len(loaded),
+            "Cache hydration succeeded — sheet_rows=%d, skipped=%d, "
+            "recent_tail=%d, motor_latest=%d",
+            len(all_docs),
             skipped,
+            len(readings_cache),
+            len(_motor_latest),
         )
     except Exception as exc:
-        logger.error("Cache hydration failed — readings_cache unchanged: %s", exc)
+        logger.error("Cache hydration failed — cache unchanged: %s", exc)
 
 
 def init_google_sheets() -> None:
@@ -609,6 +640,7 @@ async def process_and_store_readings(
             bulk_entry=bulk_entry,
         )
         readings_cache.append(doc)
+        _set_motor_latest(doc)
         new_docs.append(doc)
     if len(readings_cache) > 1000:
         del readings_cache[: len(readings_cache) - 1000]
@@ -625,12 +657,10 @@ async def process_and_store_readings(
 def latest_readings() -> list[dict[str, Any]]:
     """
     Return the most recent reading for each unique (plant, machine, motor) tuple.
-    This deduplicates historical readings and ensures calculations use current status only.
+
+    Uses _motor_latest (full-sheet latest on startup + live updates on submit).
     """
-    latest: dict[tuple[str, str, str], dict[str, Any]] = {}
-    for reading in readings_cache:
-        latest[(reading["plant"], reading["machine"], reading["motor"])] = reading
-    return list(latest.values())
+    return list(_motor_latest.values())
 
 
 def get_latest_health_counts(plant_id: str | None = None, machine_id: str | None = None) -> dict[str, int]:
@@ -774,7 +804,7 @@ def _dashboard_static_status() -> dict[str, Any]:
 async def startup_event() -> None:
     app.state.config = load_config()
     init_google_sheets()
-    hydrate_readings_cache_from_sheets(max_rows=1000)
+    hydrate_readings_cache_from_sheets(recent_tail=_RECENT_HISTORY_TAIL)
     ui = _dashboard_static_status()
     if ui["dashboard_ready"]:
         logger.info("Dashboard UI ready (%s)", ui["index_html"])
