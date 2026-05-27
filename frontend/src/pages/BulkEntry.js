@@ -20,6 +20,7 @@ const BulkEntry = () => {
   const [readings, setReadings] = useState({});
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoBase64, setPhotoBase64] = useState(null);
+  const [photoFilename, setPhotoFilename] = useState("");
   const [technician, setTechnician] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -88,6 +89,7 @@ const BulkEntry = () => {
   const handlePhotoCapture = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setPhotoFilename(file.name || "");
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoBase64(reader.result);
@@ -162,7 +164,9 @@ const BulkEntry = () => {
           };
         }),
         technician,
-        photo_base64: photoBase64,
+        verified_by: technician.trim(),
+        photo_base64: photoBase64 || undefined,
+        photo_filename: photoFilename.trim() || undefined,
         entry_source: "Field",
       };
 
@@ -188,6 +192,7 @@ const BulkEntry = () => {
       setReadings({});
       setPhotoPreview(null);
       setPhotoBase64(null);
+      setPhotoFilename("");
       setTechnician("");
     } catch (error) {
       console.error("Bulk submit error:", error);
@@ -369,7 +374,7 @@ const BulkEntry = () => {
                 ) : (
                   <div className="relative inline-block">
                     <img src={photoPreview} alt="Preview" className="w-48 h-36 object-cover border-2 border-[#002FA7]" />
-                    <button type="button" onClick={() => { setPhotoPreview(null); setPhotoBase64(null); }} className="absolute top-2 right-2 bg-[#E11D48] text-white p-1 hover:bg-[#E11D48]/90">
+                    <button type="button" onClick={() => { setPhotoPreview(null); setPhotoBase64(null); setPhotoFilename(""); }} className="absolute top-2 right-2 bg-[#E11D48] text-white p-1 hover:bg-[#E11D48]/90">
                       <XCircle size={16} weight="fill" />
                     </button>
                   </div>

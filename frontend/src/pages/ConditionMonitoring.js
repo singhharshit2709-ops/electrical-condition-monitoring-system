@@ -37,6 +37,7 @@ const ConditionMonitoring = () => {
     verified_by: "",
     notes: "",
     photo_base64: null,
+    photo_filename: "",
   });
   const [photoPreview, setPhotoPreview] = useState(null);
 
@@ -109,7 +110,11 @@ const ConditionMonitoring = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, photo_base64: reader.result });
+        setFormData({
+          ...formData,
+          photo_base64: reader.result,
+          photo_filename: file.name || "",
+        });
         setPhotoPreview(reader.result);
       };
       reader.readAsDataURL(file);
@@ -117,7 +122,7 @@ const ConditionMonitoring = () => {
   };
 
   const removePhoto = () => {
-    setFormData({ ...formData, photo_base64: null });
+    setFormData({ ...formData, photo_base64: null, photo_filename: "" });
     setPhotoPreview(null);
   };
 
@@ -134,9 +139,10 @@ const ConditionMonitoring = () => {
         normal_current: parseFloat(formData.normal_current),
         warning_current: parseFloat(formData.warning_current),
         entry_source: formData.entry_source,
-        verified_by: formData.verified_by || null,
-        notes: formData.notes || null,
-        photo_base64: formData.photo_base64,
+        verified_by: formData.verified_by.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
+        photo_base64: formData.photo_base64 || undefined,
+        photo_filename: formData.photo_filename.trim() || undefined,
       });
       
       if (response.data.bulk_entry_flag) {
@@ -156,6 +162,7 @@ const ConditionMonitoring = () => {
         verified_by: "",
         notes: "",
         photo_base64: null,
+        photo_filename: "",
       });
       setPhotoPreview(null);
       setShowAddForm(false);

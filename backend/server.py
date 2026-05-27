@@ -92,8 +92,9 @@ _SHEETS_HEADERS = [
     "normal_vibration", "warning_vibration",
     "status", "timestamp",
     "entry_source", "verified_by", "notes",
-    "has_photo", "bulk_entry",
+    "photo_filename", "photo", "has_photo", "bulk_entry",
 ]
+_SHEETS_MAX_CELL_CHARS = 49_000  # Google Sheets cell limit is 50,000 characters
 
 
 # ════════════════════════════════════════════════════════════════��[...]
@@ -242,7 +243,61 @@ def health_percent_for_status(status: str) -> int:
 
 def _row_from_doc(doc: dict[str, Any]) -> list:
     """Convert a reading document dict into an ordered list matching _SHEETS_HEADERS."""
-    return [str(doc.get(col, "")) for col in _SHEETS_HEADERS]
+    row: list[str] = []
+    for col in _SHEETS_HEADERS:
+        val = doc.get(col)
+        if val is None or val == "" or val == "None":
+            row.append("")
+        elif col in _BOOL_SHEET_COLS:
+            row.append("TRUE" if val else "FALSE")
+        else:
+            row.append(str(val))
+    return row
+
+
+def _merge_reading_source(
+    motor_item: dict[str, Any] | None,
+    batch_meta: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Merge batch-level metadata (photo, verified_by) with per-motor reading fields."""
+    merged: dict[str, Any] = {}
+    if batch_meta:
+        merged.update(batch_meta)
+    if motor_item:
+        merged.update(motor_item)
+    return merged
+
+
+def _photo_for_storage(source: dict[str, Any]) -> str | None:
+    """Return photo payload for persistence; truncate if over Google Sheets cell limit."""
+    raw = source.get("photo_base64") or source.get("photo")
+    if not raw:
+        return None
+    text = str(raw)
+    if len(text) > _SHEETS_MAX_CELL_CHARS:
+        logger.warning(
+            "Photo data truncated for Google Sheets (motor=%r, len=%d)",
+            source.get("motor"),
+            len(text),
+        )
+        return text[:_SHEETS_MAX_CELL_CHARS]
+    return text
+
+
+def _batch_meta_from_request(data: dict[str, Any]) -> dict[str, Any]:
+    """Extract submission-level metadata applied to every motor in a bulk/single request."""
+    return {
+        key: value
+        for key, value in {
+            "verified_by": data.get("verified_by"),
+            "technician": data.get("technician"),
+            "photo_base64": data.get("photo_base64"),
+            "photo_filename": data.get("photo_filename"),
+            "entry_source": data.get("entry_source"),
+            "notes": data.get("notes"),
+        }.items()
+        if value not in (None, "")
+    }
 
 
 _NUMERIC_SHEET_COLS = frozenset(
@@ -586,6 +641,7 @@ def reading_doc_from_result(
     current = params.get("current")
     temperature = params.get("temperature")
     vibration = params.get("vibration")
+    photo = _photo_for_storage(source)
     return {
         "id": str(uuid.uuid4()),
         "plant": plant_id,
@@ -613,7 +669,9 @@ def reading_doc_from_result(
         "entry_source": source.get("entry_source"),
         "verified_by": source.get("verified_by") or source.get("technician"),
         "notes": source.get("notes"),
-        "has_photo": bool(source.get("photo_base64")),
+        "photo_filename": source.get("photo_filename") or "",
+        "photo": photo,
+        "has_photo": bool(photo),
         "bulk_entry": bulk_entry,
     }
 
@@ -623,6 +681,7 @@ async def process_and_store_readings(
     source_readings: list[dict[str, Any]] | None = None,
     bulk_entry: bool = False,
     strict: bool = False,
+    batch_meta: dict[str, Any] | None = None,
 ) -> ReadingsBatchResponse:
     response = await submit_readings(payload, strict=strict)
     source_by_motor = {
@@ -632,11 +691,15 @@ async def process_and_store_readings(
     }
     new_docs: list[dict[str, Any]] = []
     for result in response.results:
+        source = _merge_reading_source(
+            source_by_motor.get(result.motor, {}),
+            batch_meta,
+        )
         doc = reading_doc_from_result(
             payload.plant_id,
             payload.machine_id,
             result,
-            source_by_motor.get(result.motor, {}),
+            source,
             bulk_entry=bulk_entry,
         )
         readings_cache.append(doc)
@@ -1024,8 +1087,9 @@ async def add_bulk_condition_data(data: dict[str, Any]) -> dict[str, Any]:
         machine_id=canonical_machine,
         readings=motor_readings,
     )
+    batch_meta = _batch_meta_from_request(data)
     response = await process_and_store_readings(
-        payload, readings, bulk_entry=True, strict=True
+        payload, readings, bulk_entry=True, strict=True, batch_meta=batch_meta
     )
     inserted = len(response.results)
     if inserted == 0:
@@ -1072,8 +1136,9 @@ async def add_condition_data(data: dict[str, Any]) -> dict[str, Any]:
             )
         ],
     )
+    batch_meta = _batch_meta_from_request(data)
     response = await process_and_store_readings(
-        payload, [data], bulk_entry=False, strict=True
+        payload, [data], bulk_entry=False, strict=True, batch_meta=batch_meta
     )
     if not response.results:
         raise HTTPException(
