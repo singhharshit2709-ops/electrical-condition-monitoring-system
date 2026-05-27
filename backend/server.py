@@ -243,6 +243,123 @@ def health_percent_for_status(status: str) -> int:
 # Google Sheets Persistence Layer
 # ════════════════════════════════════════════════════════════════�[...]
 
+def _sheet_end_col() -> str:
+    """Return the A1 column letter for the last _SHEETS_HEADERS column."""
+    n = len(_SHEETS_HEADERS)
+    letters = ""
+    while n:
+        n, rem = divmod(n - 1, 26)
+        letters = chr(65 + rem) + letters
+    return letters
+
+
+def _normalize_sheet_row(row: list[Any]) -> list[str]:
+    """Pad or trim a worksheet row to exactly len(_SHEETS_HEADERS) cells."""
+    cells = ["" if cell is None else str(cell) for cell in row]
+    if len(cells) < len(_SHEETS_HEADERS):
+        cells.extend([""] * (len(_SHEETS_HEADERS) - len(cells)))
+    return cells[: len(_SHEETS_HEADERS)]
+
+
+def _header_row_matches(row: list[Any]) -> bool:
+    """True when a row is a worksheet header (canonical or legacy partial)."""
+    if not row:
+        return False
+    normalized = _normalize_sheet_row(row)
+    if normalized == _SHEETS_HEADERS:
+        return True
+    first = [str(cell).strip().lower() for cell in row[:4]]
+    return first == ["id", "plant", "machine", "motor"]
+
+
+def _ensure_canonical_header_row(worksheet: Any) -> None:
+    """
+    Guarantee row 1 contains the canonical header.
+    Updates in place — never inserts a header row into the data area.
+    """
+    row1 = worksheet.row_values(1)
+    if _header_row_matches(row1) and _normalize_sheet_row(row1) == _SHEETS_HEADERS:
+        return
+    end_col = _sheet_end_col()
+    worksheet.update(
+        [_SHEETS_HEADERS],
+        range_name=f"A1:{end_col}1",
+        value_input_option="RAW",
+    )
+    logger.info("Google Sheets — canonical header written to row 1 (in-place update)")
+
+
+def _remove_duplicate_header_rows(worksheet: Any) -> int:
+    """Delete header rows found below row 1. Returns number of rows removed."""
+    all_values = worksheet.get_all_values()
+    rows_to_delete = [
+        idx
+        for idx, row in enumerate(all_values[1:], start=2)
+        if _header_row_matches(row)
+    ]
+    for row_num in reversed(rows_to_delete):
+        worksheet.delete_rows(row_num)
+    return len(rows_to_delete)
+
+
+def _sheet_needs_repair(worksheet: Any) -> bool:
+    """Detect duplicate headers or a non-canonical row 1 header."""
+    all_values = worksheet.get_all_values()
+    if not all_values:
+        return True
+    if not _header_row_matches(all_values[0]):
+        return True
+    if _normalize_sheet_row(all_values[0]) != _SHEETS_HEADERS:
+        return True
+    return any(_header_row_matches(row) for row in all_values[1:])
+
+
+def repair_readings_worksheet_layout(worksheet: Any) -> dict[str, int]:
+    """
+    Rebuild the Readings worksheet:
+    row 1 = canonical header, rows 2+ = valid readings newest-first.
+    Preserves all parseable readings and normalizes to 22 columns.
+    """
+    all_values = worksheet.get_all_values()
+    docs: list[dict[str, Any]] = []
+    duplicate_headers = 0
+    skipped = 0
+
+    for row in all_values:
+        if _header_row_matches(row):
+            duplicate_headers += 1
+            continue
+        doc = _doc_from_row(row)
+        if doc:
+            docs.append(doc)
+        elif row and any(str(cell).strip() for cell in row):
+            skipped += 1
+
+    docs.sort(key=lambda doc: doc.get("timestamp") or "", reverse=True)
+    data_rows = [_row_from_doc(doc) for doc in docs]
+    all_rows = [_SHEETS_HEADERS] + data_rows
+    end_col = _sheet_end_col()
+    total_rows = len(all_rows)
+
+    worksheet.resize(rows=max(total_rows + 50, 1000), cols=len(_SHEETS_HEADERS))
+    worksheet.update(
+        all_rows,
+        range_name=f"A1:{end_col}{total_rows}",
+        value_input_option="RAW",
+    )
+
+    current_rows = worksheet.row_count
+    if current_rows > total_rows:
+        worksheet.delete_rows(total_rows + 1, current_rows)
+
+    return {
+        "duplicate_headers_found": duplicate_headers,
+        "valid_rows_written": len(docs),
+        "skipped_rows": skipped,
+        "total_rows": total_rows,
+    }
+
+
 def _row_from_doc(doc: dict[str, Any]) -> list:
     """Convert a reading document dict into an ordered list matching _SHEETS_HEADERS."""
     row: list[str] = []
@@ -339,12 +456,18 @@ def _doc_from_row(row: list[str]) -> dict[str, Any] | None:
     """Convert a Readings worksheet row into a readings_cache document."""
     if not row or all(str(cell).strip() == "" for cell in row):
         return None
-    padded = list(row) + [""] * max(0, len(_SHEETS_HEADERS) - len(row))
+    if _header_row_matches(row):
+        return None
+    padded = _normalize_sheet_row(row)
     doc: dict[str, Any] = {
         col: _parse_sheet_cell(col, padded[idx])
         for idx, col in enumerate(_SHEETS_HEADERS)
     }
-    if not doc.get("plant") or not doc.get("motor"):
+    plant = str(doc.get("plant") or "").strip()
+    motor = str(doc.get("motor") or "").strip()
+    if not plant or not motor:
+        return None
+    if plant.lower() == "plant" and motor.lower() == "motor":
         return None
     return doc
 
@@ -390,6 +513,9 @@ def hydrate_readings_cache_from_sheets(recent_tail: int = _RECENT_HISTORY_TAIL) 
         all_docs: list[dict[str, Any]] = []
         skipped = 0
         for row in all_values[1:]:
+            if _header_row_matches(row):
+                skipped += 1
+                continue
             doc = _doc_from_row(row)
             if doc:
                 all_docs.append(doc)
@@ -537,17 +663,33 @@ def init_google_sheets() -> None:
             worksheet = spreadsheet.add_worksheet(
                 title=worksheet_title, rows=10000, cols=len(_SHEETS_HEADERS)
             )
-            worksheet.append_row(_SHEETS_HEADERS)
+            worksheet.update(
+                [_SHEETS_HEADERS],
+                range_name=f"A1:{_sheet_end_col()}1",
+                value_input_option="RAW",
+            )
             logger.info("Google Sheets — created %r worksheet with headers", worksheet_title)
-
-        # Ensure headers exist on row 1 if the sheet was created externally
-        existing_headers = worksheet.row_values(1)
-        if existing_headers != _SHEETS_HEADERS:
-            worksheet.insert_row(_SHEETS_HEADERS, index=1)
-            logger.info("Google Sheets — inserted header row")
 
         _sheets_worksheet = worksheet
         _sheets_enabled   = True
+
+        _ensure_canonical_header_row(worksheet)
+        removed_dupes = _remove_duplicate_header_rows(worksheet)
+        if removed_dupes:
+            logger.warning(
+                "Google Sheets — removed %d duplicate header row(s) from data area",
+                removed_dupes,
+            )
+
+        repair_on_start = os.environ.get(
+            "GOOGLE_SHEETS_REPAIR_LAYOUT", "auto"
+        ).lower()
+        if repair_on_start == "true" or (
+            repair_on_start == "auto" and _sheet_needs_repair(worksheet)
+        ):
+            stats = repair_readings_worksheet_layout(worksheet)
+            logger.info("Google Sheets layout repair complete: %s", stats)
+
         logger.info(
             "Google Sheets ready (sheet_id=%s, worksheet=%r, credential_source=%s)",
             sheet_id,

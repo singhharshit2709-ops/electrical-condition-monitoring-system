@@ -15,8 +15,19 @@ from server import (  # noqa: E402
     _SHEETS_HEADER_ROW,
     _SHEETS_HEADERS,
     _doc_from_row,
+    _header_row_matches,
+    _normalize_sheet_row,
     _row_from_doc,
 )
+
+
+def test_header_row_detection() -> None:
+    assert _header_row_matches(_SHEETS_HEADERS)
+    assert _header_row_matches(["id", "plant", "machine", "motor"])
+    assert not _header_row_matches(["GT", "G1 Lehr", "Lehr Fan 1"])
+    assert _doc_from_row(_SHEETS_HEADERS) is None
+    assert _doc_from_row(["id", "plant", "machine", "motor"] + [""] * 18) is None
+    print("PASS header row detection and rejection")
 
 
 def test_insert_constants() -> None:
@@ -117,6 +128,7 @@ def test_hydration_newest_head() -> None:
 
 
 def main() -> int:
+    test_header_row_detection()
     test_insert_constants()
     test_row_mapping_integrity()
     test_newest_first_cache_order()
