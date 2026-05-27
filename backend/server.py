@@ -95,6 +95,8 @@ _SHEETS_HEADERS = [
     "photo_filename", "photo", "has_photo", "bulk_entry",
 ]
 _SHEETS_MAX_CELL_CHARS = 49_000  # Google Sheets cell limit is 50,000 characters
+_SHEETS_HEADER_ROW = 1
+_SHEETS_DATA_START_ROW = 2  # Newest readings insert here (below header)
 
 
 # ════════════════════════════════════════════════════════════════��[...]
@@ -360,8 +362,10 @@ def hydrate_readings_cache_from_sheets(recent_tail: int = _RECENT_HISTORY_TAIL) 
     """
     Hybrid B+A hydration from Google Sheets on startup.
 
-    B — Build _motor_latest from the full Readings tab (latest row per motor wins).
-    A — Load readings_cache with the last ``recent_tail`` chronological rows for /recent.
+    Sheet layout is newest-first: row 2 is the latest submission.
+
+    B — Build _motor_latest from the full Readings tab (first row per motor wins).
+    A — Load readings_cache with the first ``recent_tail`` rows (newest) for /recent.
     """
     global readings_cache, _motor_latest
 
@@ -392,13 +396,16 @@ def hydrate_readings_cache_from_sheets(recent_tail: int = _RECENT_HISTORY_TAIL) 
             else:
                 skipped += 1
 
-        # B: latest per motor from entire sheet (chronological — last row wins)
+        # B: latest per motor — prefer newest timestamp (robust across legacy append rows)
         motor_latest: dict[tuple[str, str, str], dict[str, Any]] = {}
         for doc in all_docs:
-            motor_latest[_motor_key(doc)] = doc
+            key = _motor_key(doc)
+            existing = motor_latest.get(key)
+            if existing is None or (doc.get("timestamp") or "") >= (existing.get("timestamp") or ""):
+                motor_latest[key] = doc
 
-        # A: chronological tail for Recent Readings API
-        readings_cache = all_docs[-recent_tail:]
+        # A: newest-first head for Recent Readings API
+        readings_cache = all_docs[:recent_tail]
         _motor_latest = motor_latest
 
         logger.info(
@@ -561,14 +568,20 @@ def init_google_sheets() -> None:
 def save_reading_to_sheets(doc: dict[str, Any]) -> None:
     """
     Persist a single reading document to the Readings worksheet.
+    Inserts at row 2 so the newest entry appears directly below the header.
     Called by /condition-monitoring (single-entry path).
     """
     if not _sheets_enabled or _sheets_worksheet is None:
         return
     try:
-        _sheets_worksheet.append_row(_row_from_doc(doc), value_input_option="RAW")
+        _sheets_worksheet.insert_row(
+            _row_from_doc(doc),
+            index=_SHEETS_DATA_START_ROW,
+            value_input_option="RAW",
+        )
         logger.info(
-            "Saved 1 reading to Google Sheets (motor=%s, plant=%s, machine=%s)",
+            "Saved 1 reading to Google Sheets at row %d (motor=%s, plant=%s, machine=%s)",
+            _SHEETS_DATA_START_ROW,
             doc.get("motor"), doc.get("plant"), doc.get("machine"),
         )
     except gspread.exceptions.APIError as exc:
@@ -580,6 +593,7 @@ def save_reading_to_sheets(doc: dict[str, Any]) -> None:
 def save_bulk_readings_to_sheets(docs: list[dict[str, Any]]) -> None:
     """
     Persist multiple reading documents to the Readings worksheet.
+    Inserts starting at row 2 so the batch appears at the top (newest first).
     Called by /condition-monitoring/bulk.
     """
     if not _sheets_enabled or _sheets_worksheet is None:
@@ -588,11 +602,16 @@ def save_bulk_readings_to_sheets(docs: list[dict[str, Any]]) -> None:
         return
     try:
         rows = [_row_from_doc(doc) for doc in docs]
-        _sheets_worksheet.append_rows(rows, value_input_option="RAW")
+        _sheets_worksheet.insert_rows(
+            rows,
+            row=_SHEETS_DATA_START_ROW,
+            value_input_option="RAW",
+        )
         motors = ", ".join(f"{d.get('motor')}" for d in docs)
         logger.info(
-            "Saved %d reading(s) to Google Sheets (bulk, plant=%s, machine=%s, motors=[%s])",
+            "Saved %d reading(s) to Google Sheets at row %d (bulk, plant=%s, machine=%s, motors=[%s])",
             len(rows),
+            _SHEETS_DATA_START_ROW,
             docs[0].get("plant") if docs else "",
             docs[0].get("machine") if docs else "",
             motors,
@@ -702,11 +721,13 @@ async def process_and_store_readings(
             source,
             bulk_entry=bulk_entry,
         )
-        readings_cache.append(doc)
-        _set_motor_latest(doc)
         new_docs.append(doc)
+    if new_docs:
+        readings_cache[0:0] = new_docs
+        for doc in new_docs:
+            _set_motor_latest(doc)
     if len(readings_cache) > 1000:
-        del readings_cache[: len(readings_cache) - 1000]
+        del readings_cache[1000:]
 
     # ── Persist to Google Sheets ──
     if bulk_entry:
@@ -1177,7 +1198,7 @@ async def get_plant_readings(plant_id: str) -> list[dict[str, Any]]:
 @app.get("/condition-monitoring/recent", tags=["Compatibility"])
 @app.get("/api/condition-monitoring/recent", tags=["Compatibility"])
 async def get_recent_readings(limit: int = 25) -> list[dict[str, Any]]:
-    return list(reversed(readings_cache[-limit:]))
+    return readings_cache[:limit]
 
 
 @app.get("/active-alarms", tags=["Compatibility"])
