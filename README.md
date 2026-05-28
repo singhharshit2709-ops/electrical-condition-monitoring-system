@@ -4,7 +4,7 @@
 
 Electrical condition monitoring for the G Tank: current, temperature, and vibration readings with dashboard, bulk entry, alarms, and Google Sheets logging.
 
-## Manager handover — links to share
+
 
 | Item | URL |
 |------|-----|
